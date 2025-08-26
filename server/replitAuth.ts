@@ -27,10 +27,13 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true, // Allow creating table if missing
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -38,8 +41,9 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: isProduction, // Only secure in production (HTTPS)
       maxAge: sessionTtl,
+      sameSite: isProduction ? 'none' : 'lax',
     },
   });
 }
@@ -102,35 +106,72 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+    try {
+      const hostname = req.hostname || req.get('host') || 'localhost';
+      console.log(`Login attempt for hostname: ${hostname}`);
+      
+      passport.authenticate(`replitauth:${hostname}`, {
+        prompt: "login consent",
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Authentication setup error' });
+    }
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
+    try {
+      const hostname = req.hostname || req.get('host') || 'localhost';
+      console.log(`Callback for hostname: ${hostname}`);
+      
+      passport.authenticate(`replitauth:${hostname}`, {
+        successReturnToOrRedirect: "/",
+        failureRedirect: "/login-error",
+        failureFlash: false
+      })(req, res, next);
+    } catch (error) {
+      console.error('Callback error:', error);
+      res.redirect('/login-error');
+    }
   });
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+      try {
+        const hostname = req.hostname || req.get('host') || 'localhost';
+        res.redirect(
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${hostname}`,
+          }).href
+        );
+      } catch (error) {
+        console.error('Logout error:', error);
+        res.redirect('/');
+      }
+    });
+  });
+  
+  // Add error route for failed logins
+  app.get("/login-error", (req, res) => {
+    res.status(401).json({ 
+      message: "Authentication failed",
+      error: "Please try logging in again",
+      loginUrl: "/api/login"
     });
   });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // Skip auth in development mode for easier testing
+  if (process.env.NODE_ENV === 'development' && process.env.SKIP_AUTH === 'true') {
+    return next();
+  }
+  
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user || !user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -151,6 +192,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     updateUserSession(user, tokenResponse);
     return next();
   } catch (error) {
+    console.error('Token refresh error:', error);
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
