@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { Server as SocketServer } from "socket.io";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -38,6 +39,46 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Setup WebSocket for real-time collaboration and live preview
+  const io = new SocketServer(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+
+  // Handle WebSocket connections for live preview and collaboration
+  io.on('connection', (socket) => {
+    log(`WebSocket client connected: ${socket.id}`, 'websocket');
+
+    // Handle file changes for live preview
+    socket.on('file-change', (data) => {
+      socket.broadcast.emit('file-updated', data);
+    });
+
+    // Handle cursor position sharing
+    socket.on('cursor-position', (data) => {
+      socket.broadcast.emit('cursor-update', {
+        ...data,
+        userId: socket.id
+      });
+    });
+
+    // Handle user joining a project room
+    socket.on('join-project', (projectId) => {
+      socket.join(`project-${projectId}`);
+      socket.to(`project-${projectId}`).emit('user-joined', {
+        userId: socket.id,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    // Handle user leaving
+    socket.on('disconnect', () => {
+      log(`WebSocket client disconnected: ${socket.id}`, 'websocket');
+    });
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

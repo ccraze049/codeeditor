@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
 import { generateCode, explainCode, debugCode } from "./gemini.js";
 import { z } from "zod";
+import { spawn } from "child_process";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -373,6 +374,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching shared project:", error);
       res.status(500).json({ message: "Failed to fetch shared project" });
+    }
+  });
+
+  // Terminal command execution route
+  app.post('/api/terminal/execute', isAuthenticated, async (req: any, res) => {
+    try {
+      const { command, projectId } = req.body;
+      
+      if (!command) {
+        return res.status(400).json({ message: "Command is required" });
+      }
+
+      // Security: Only allow safe commands
+      const allowedCommands = [
+        'npm', 'node', 'ls', 'pwd', 'cat', 'echo', 'date', 'whoami',
+        'git', 'clear', 'help', 'mkdir', 'touch', 'rm', 'cp', 'mv'
+      ];
+      
+      const commandParts = command.trim().split(' ');
+      const baseCommand = commandParts[0];
+      
+      if (!allowedCommands.includes(baseCommand)) {
+        return res.json({ 
+          output: `Command '${baseCommand}' is not allowed for security reasons.\nAllowed commands: ${allowedCommands.join(', ')}`,
+          type: 'error'
+        });
+      }
+
+      // Special handling for some commands
+      if (command === 'clear') {
+        return res.json({ output: '', type: 'clear' });
+      }
+      
+      if (command === 'help') {
+        return res.json({ 
+          output: `Available commands:\n${allowedCommands.map(cmd => `  ${cmd}`).join('\n')}\n\nNote: Commands are executed in a secure sandbox environment.`,
+          type: 'output'
+        });
+      }
+
+      // Execute command
+      const child = spawn(baseCommand, commandParts.slice(1), {
+        cwd: process.cwd(),
+        env: process.env,
+        timeout: 30000 // 30 second timeout
+      });
+
+      let output = '';
+      let error = '';
+
+      child.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      child.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+
+      child.on('close', (code) => {
+        const result = error || output || `Command completed with exit code ${code}`;
+        res.json({ 
+          output: result,
+          type: code === 0 ? 'output' : 'error',
+          exitCode: code
+        });
+      });
+
+      child.on('error', (err) => {
+        res.json({ 
+          output: `Error executing command: ${err.message}`,
+          type: 'error'
+        });
+      });
+      
+    } catch (error) {
+      console.error("Error executing terminal command:", error);
+      res.status(500).json({ message: "Failed to execute command" });
     }
   });
 

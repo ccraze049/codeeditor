@@ -105,7 +105,50 @@ export default function Monaco({ file, projectId, isReadOnly }: MonacoProps) {
       editorInstanceRef.current.dispose();
     }
 
-    // Create new editor
+    // Configure TypeScript compiler options for better IntelliSense
+    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+      target: monaco.languages.typescript.ScriptTarget.ES2020,
+      allowNonTsExtensions: true,
+      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+      module: monaco.languages.typescript.ModuleKind.CommonJS,
+      noEmit: true,
+      esModuleInterop: true,
+      jsx: monaco.languages.typescript.JsxEmit.React,
+      reactNamespace: 'React',
+      allowJs: true,
+      typeRoots: ['node_modules/@types']
+    });
+
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      target: monaco.languages.typescript.ScriptTarget.ES2020,
+      allowNonTsExtensions: true,
+      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+      module: monaco.languages.typescript.ModuleKind.CommonJS,
+      noEmit: true,
+      esModuleInterop: true,
+      jsx: monaco.languages.typescript.JsxEmit.React,
+      reactNamespace: 'React',
+      allowJs: true,
+      typeRoots: ['node_modules/@types']
+    });
+
+    // Add React and common libraries type definitions
+    monaco.languages.typescript.javascriptDefaults.addExtraLib(
+      `declare module 'react' {
+        export default React;
+        export interface FC<P = {}> {
+          (props: P): JSX.Element | null;
+        }
+        export function useState<T>(initialState: T): [T, (value: T) => void];
+        export function useEffect(effect: () => void | (() => void), deps?: any[]): void;
+        export function useCallback<T extends (...args: any[]) => any>(callback: T, deps: any[]): T;
+        export function useMemo<T>(factory: () => T, deps: any[]): T;
+        export function useRef<T>(initialValue: T): { current: T };
+      }`,
+      'react.d.ts'
+    );
+
+    // Create new editor with enhanced settings
     const editor = monaco.editor.create(editorRef.current, {
       value: file?.content || '',
       language: getLanguageFromFileName(file?.name || ''),
@@ -130,6 +173,60 @@ export default function Monaco({ file, projectId, isReadOnly }: MonacoProps) {
       renderWhitespace: 'selection',
       tabSize: 2,
       insertSpaces: true,
+      // Enhanced IntelliSense and autocomplete settings
+      suggestOnTriggerCharacters: true,
+      acceptSuggestionOnCommitCharacter: true,
+      acceptSuggestionOnEnter: 'on',
+      quickSuggestions: {
+        other: true,
+        comments: true,
+        strings: true
+      },
+      quickSuggestionsDelay: 100,
+      parameterHints: {
+        enabled: true,
+        cycle: true
+      },
+      suggest: {
+        showKeywords: true,
+        showSnippets: true,
+        showFunctions: true,
+        showVariables: true,
+        showClasses: true,
+        showModules: true,
+        showProperties: true,
+        showMethods: true,
+        showConstructors: true,
+        showFields: true,
+        showValues: true,
+        showConstants: true,
+        showEnums: true,
+        showEnumMembers: true,
+        showEvents: true,
+        showOperators: true,
+        showUnits: true,
+        showColors: true,
+        showFiles: true,
+        showReferences: true,
+        showFolders: true,
+        showTypeParameters: true,
+        showIssues: true,
+        showUsers: true,
+        showStructs: true
+      },
+      // Enable hover information
+      hover: {
+        enabled: true,
+        delay: 300
+      },
+      // Better bracket matching
+      matchBrackets: 'always',
+      // Auto-indentation
+      autoIndent: 'full',
+      // Format on paste
+      formatOnPaste: true,
+      // Format on type
+      formatOnType: true
     });
 
     editorInstanceRef.current = editor;

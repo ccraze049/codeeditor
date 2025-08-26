@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Play,
   Square,
@@ -34,7 +37,7 @@ export default function Terminal({ projectId }: TerminalProps) {
     {
       id: '2',
       type: 'system',
-      content: 'Type "help" for available commands',
+      content: 'Real terminal with command execution. Type "help" for available commands',
       timestamp: new Date()
     }
   ]);
@@ -44,6 +47,7 @@ export default function Terminal({ projectId }: TerminalProps) {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   // Auto-focus input and scroll to bottom
   useEffect(() => {
@@ -65,6 +69,42 @@ export default function Terminal({ projectId }: TerminalProps) {
     setLines(prev => [...prev, newLine]);
   };
 
+  // Real command execution using backend API
+  const executeCommandMutation = useMutation({
+    mutationFn: async (command: string) => {
+      const response = await apiRequest("POST", "/api/terminal/execute", {
+        command,
+        projectId
+      });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      if (data.type === 'clear') {
+        setLines([]);
+      } else {
+        // Split output into lines and add each line
+        const outputLines = data.output.split('\n');
+        outputLines.forEach((line: string, index: number) => {
+          if (line.trim() || index === 0) { // Always show first line even if empty
+            addLine(line, data.type === 'error' ? 'error' : 'output');
+          }
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Terminal Error",
+        description: "Failed to execute command. Please try again.",
+        variant: "destructive",
+      });
+      addLine(`Error: Failed to execute command`, 'error');
+    },
+    onSettled: () => {
+      setIsRunning(false);
+      setCurrentCommand("");
+    }
+  });
+
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
 
@@ -77,113 +117,8 @@ export default function Terminal({ projectId }: TerminalProps) {
 
     setIsRunning(true);
 
-    // Simulate command execution with realistic responses
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate processing time
-
-      const cmd = command.toLowerCase().trim();
-
-      switch (cmd) {
-        case 'help':
-          addLine('Available commands:', 'output');
-          addLine('  npm start       - Start development server', 'output');
-          addLine('  npm install     - Install dependencies', 'output');
-          addLine('  npm run build   - Build for production', 'output');
-          addLine('  npm test        - Run tests', 'output');
-          addLine('  ls              - List files', 'output');
-          addLine('  clear           - Clear terminal', 'output');
-          addLine('  pwd             - Show current directory', 'output');
-          addLine('  node --version  - Show Node.js version', 'output');
-          addLine('  help            - Show this help', 'output');
-          break;
-
-        case 'npm start':
-          addLine('Starting the development server...', 'output');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          addLine('Compiled successfully!', 'output');
-          addLine('', 'output');
-          addLine('Local:            http://localhost:3000', 'output');
-          addLine('On Your Network:  http://192.168.1.100:3000', 'output');
-          addLine('', 'output');
-          addLine('Note that the development build is not optimized.', 'output');
-          addLine('To create a production build, use npm run build.', 'output');
-          break;
-
-        case 'npm install':
-          addLine('Installing dependencies...', 'output');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          addLine('npm WARN deprecated package@1.0.0: Package deprecated', 'output');
-          addLine('added 1247 packages in 8.32s', 'output');
-          break;
-
-        case 'npm run build':
-          addLine('Creating an optimized production build...', 'output');
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          addLine('Compiled successfully.', 'output');
-          addLine('', 'output');
-          addLine('File sizes after gzip:', 'output');
-          addLine('  41.25 KB  build/static/js/main.js', 'output');
-          addLine('  1.62 KB   build/static/css/main.css', 'output');
-          break;
-
-        case 'npm test':
-          addLine('Running tests...', 'output');
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          addLine('PASS src/App.test.js', 'output');
-          addLine('✓ renders learn react link (23 ms)', 'output');
-          addLine('', 'output');
-          addLine('Test Suites: 1 passed, 1 total', 'output');
-          addLine('Tests:       1 passed, 1 total', 'output');
-          addLine('Snapshots:   0 total', 'output');
-          addLine('Time:        2.145 s', 'output');
-          break;
-
-        case 'ls':
-          addLine('App.js', 'output');
-          addLine('App.css', 'output');
-          addLine('index.js', 'output');
-          addLine('package.json', 'output');
-          addLine('README.md', 'output');
-          addLine('node_modules/', 'output');
-          addLine('public/', 'output');
-          addLine('src/', 'output');
-          break;
-
-        case 'pwd':
-          addLine('/home/user/projects/my-react-app', 'output');
-          break;
-
-        case 'node --version':
-          addLine('v18.17.0', 'output');
-          break;
-
-        case 'clear':
-          setLines([]);
-          break;
-
-        case 'whoami':
-          addLine('codespace-user', 'output');
-          break;
-
-        case 'date':
-          addLine(new Date().toString(), 'output');
-          break;
-
-        default:
-          if (cmd.startsWith('echo ')) {
-            addLine(command.slice(5), 'output');
-          } else if (cmd.startsWith('cd ')) {
-            addLine(`Changed directory to ${command.slice(3)}`, 'output');
-          } else {
-            addLine(`bash: ${cmd}: command not found`, 'error');
-          }
-      }
-    } catch (error) {
-      addLine(`Error executing command: ${error}`, 'error');
-    } finally {
-      setIsRunning(false);
-      setCurrentCommand("");
-    }
+    // Execute command through backend API
+    executeCommandMutation.mutate(command);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
