@@ -110,10 +110,10 @@ export class DatabaseStorage implements IStorage {
       const existingUser = memoryStore.users.get(userData.id);
       const resultUser: User = {
         id: userData.id,
-        email: userData.email || '',
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        profileImageUrl: userData.profileImageUrl || null,
+        email: userData.email ?? '',
+        firstName: userData.firstName ?? '',
+        lastName: userData.lastName ?? '',
+        profileImageUrl: userData.profileImageUrl ?? null,
         createdAt: existingUser?.createdAt || new Date(),
         updatedAt: new Date()
       };
@@ -133,40 +133,53 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Database getUserProjects failed, using memory store:', error);
       
-      // Return sample projects for development if database fails
-      const sampleProjects: Project[] = [
-        withId({
-          name: "My First Project",
-          description: "A sample React application",
-          ownerId: userId,
-          isPublic: false,
-          language: "javascript",
-          template: "react"
-        }),
-        withId({
-          name: "Todo App",
-          description: "A simple todo application with React",
-          ownerId: userId,
-          isPublic: true,
-          language: "javascript",
-          template: "react"
-        })
-      ];
+      // Get existing projects from memory store first
+      const userProjects = getMemoryProjectsForUser(userId);
       
-      sampleProjects.forEach(project => {
-        memoryStore.projects.set(project.id, project);
-      });
+      // If no projects in memory, create sample projects
+      if (userProjects.length === 0) {
+        const sampleProjects: Project[] = [
+          withId({
+            name: "My First Project",
+            description: "A sample React application",
+            ownerId: userId,
+            isPublic: false,
+            language: "javascript",
+            template: "react"
+          }),
+          withId({
+            name: "Todo App",
+            description: "A simple todo application with React",
+            ownerId: userId,
+            isPublic: true,
+            language: "javascript",
+            template: "react"
+          })
+        ];
+        
+        sampleProjects.forEach(project => {
+          memoryStore.projects.set(project.id, project);
+        });
+        
+        return sampleProjects;
+      }
       
-      return sampleProjects;
+      // Return existing projects from memory store
+      return userProjects.sort((a, b) => (b.updatedAt ? new Date(b.updatedAt).getTime() : 0) - (a.updatedAt ? new Date(a.updatedAt).getTime() : 0));
     }
   }
 
   async getProject(id: string): Promise<Project | undefined> {
-    const [project] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, id));
-    return project;
+    try {
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, id));
+      return project;
+    } catch (error) {
+      console.error('Database getProject failed, using memory store:', error);
+      return memoryStore.projects.get(id);
+    }
   }
 
   async createProject(projectData: InsertProject): Promise<Project> {
