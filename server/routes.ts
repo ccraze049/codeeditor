@@ -60,6 +60,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI-powered project creation
+  app.post('/api/projects/ai-create', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { prompt, name } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: "AI prompt is required" });
+      }
+
+      // Create project first
+      const projectData = {
+        name: name || `AI Project - ${new Date().toLocaleString()}`,
+        description: `Generated from prompt: ${prompt}`,
+        ownerId: userId,
+        isPublic: false,
+      };
+      
+      const project = await storage.createProject(projectData);
+      
+      // Generate code using AI
+      const generatedCode = await generateCode(prompt, 'javascript');
+      
+      // Create main component file with AI generated code
+      await storage.createFile({
+        projectId: project.id,
+        name: "App.js",
+        path: "/App.js",
+        content: generatedCode.includes('import React') ? generatedCode : 
+          `import React, { useState } from 'react';\nimport './App.css';\n\n${generatedCode}\n\nexport default App;`,
+        isFolder: false,
+      });
+
+      // Create CSS file
+      const cssContent = await generateCode(`Generate CSS styles for: ${prompt}`, 'css');
+      await storage.createFile({
+        projectId: project.id,
+        name: "App.css",
+        path: "/App.css",
+        content: cssContent.includes('.') ? cssContent : 
+          `.App {\n  text-align: center;\n  padding: 20px;\n  font-family: Arial, sans-serif;\n}\n\nbutton {\n  padding: 10px 20px;\n  margin: 10px;\n  background: #007bff;\n  color: white;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background: #0056b3;\n}`,
+        isFolder: false,
+      });
+
+      // Create package.json
+      await storage.createFile({
+        projectId: project.id,
+        name: "package.json",
+        path: "/package.json",
+        content: `{\n  "name": "${project.name.toLowerCase().replace(/\\s+/g, '-')}",\n  "version": "1.0.0",\n  "private": true,\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0",\n    "react-scripts": "5.0.1"\n  },\n  "scripts": {\n    "start": "react-scripts start",\n    "build": "react-scripts build",\n    "test": "react-scripts test",\n    "eject": "react-scripts eject"\n  }\n}`,
+        isFolder: false,
+      });
+
+      res.json({ 
+        project,
+        message: "Project created successfully with AI-generated code!"
+      });
+    } catch (error) {
+      console.error("Error creating AI project:", error);
+      res.status(500).json({ message: "Failed to create AI project" });
+    }
+  });
+
   app.post('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

@@ -36,7 +36,12 @@ function withId<T extends Record<string, any>>(data: Omit<T, 'id' | 'createdAt' 
     id: nanoid(),
     createdAt: now,
     updatedAt: now
-  } as T;
+  } as unknown as T;
+}
+
+// Helper to get all memory projects for a user
+function getMemoryProjectsForUser(userId: string): Project[] {
+  return Array.from(memoryStore.projects.values()).filter(p => p.ownerId === userId);
 }
 
 // Interface for storage operations
@@ -104,7 +109,11 @@ export class DatabaseStorage implements IStorage {
       // Use in-memory store as fallback
       const existingUser = memoryStore.users.get(userData.id);
       const resultUser: User = {
-        ...userData,
+        id: userData.id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        profileImageUrl: userData.profileImageUrl,
         createdAt: existingUser?.createdAt || new Date(),
         updatedAt: new Date()
       };
@@ -131,12 +140,16 @@ export class DatabaseStorage implements IStorage {
           description: "A sample React application",
           ownerId: userId,
           isPublic: false,
+          language: "javascript",
+          template: "react"
         }),
         withId({
           name: "Todo App",
           description: "A simple todo application with React",
           ownerId: userId,
           isPublic: true,
+          language: "javascript",
+          template: "react"
         })
       ];
       
@@ -166,7 +179,11 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Database createProject failed, using memory store:', error);
       
-      const project: Project = withId(projectData);
+      const project: Project = withId({
+        ...projectData,
+        language: projectData.language || "javascript",
+        template: projectData.template || "react"
+      });
       memoryStore.projects.set(project.id, project);
       return project;
     }

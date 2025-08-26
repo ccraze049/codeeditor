@@ -11,8 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Code, Plus, Star, Users, Calendar, Settings, LogOut, Folder, Globe } from "lucide-react";
+import { Code, Plus, Star, Users, Calendar, Settings, LogOut, Folder, Globe, Bot, Sparkles } from "lucide-react";
 import type { Project } from "@shared/schema";
+import AIProjectCreator from "@/components/AIProjectCreator";
 
 export default function Home() {
   const { user } = useAuth();
@@ -154,13 +155,31 @@ export default function Home() {
             Welcome back, {user?.firstName || "Developer"}!
           </h1>
           <p className="text-ide-text-secondary" data-testid="text-welcome-subtitle">
-            Continue working on your projects or create something new.
+            Continue working on your projects or create something new with AI assistance.
           </p>
+          
+          {/* AI Feature Highlight */}
+          <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              <span className="font-semibold text-purple-800 dark:text-purple-200">AI-Powered Development</span>
+            </div>
+            <p className="text-sm text-purple-700 dark:text-purple-300">
+              Describe your project idea and let AI generate complete code, styling, and project structure for you instantly.
+            </p>
+          </div>
         </div>
 
         {/* Quick Actions */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
+            {/* AI Project Creator */}
+            <AIProjectCreator onProjectCreated={(projectId) => {
+              // Refresh projects and navigate to editor
+              queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+              window.location.href = `/editor/${projectId}`;
+            }} />
+            
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90" data-testid="button-create-project">
