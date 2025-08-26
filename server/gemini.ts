@@ -2,61 +2,51 @@
 const GEMINI_API_KEY = 'AIzaSyAGr9BXG1iN_dKEkeCes-55TshOiRoDncM'; // Replace with your own key
 
 export async function explainCode(code: string, language: string = "javascript"): Promise<string> {
-  try {
-    console.log('Explaining code:', code.substring(0, 50) + '...');
-    
-    // Return mock explanation based on code content
-    if (code.includes('useState')) {
-      return `This React component uses the useState hook to manage local state. The useState hook allows components to remember values between renders and update the UI when state changes. This is a fundamental pattern in React for creating interactive components.`;
-    } else if (code.includes('useEffect')) {
-      return `This code uses the useEffect hook, which handles side effects in React components. It runs after the component renders and can be used for data fetching, subscriptions, or manually changing the DOM.`;
-    } else if (code.includes('function') || code.includes('=>')) {
-      return `This code defines functions that perform specific tasks. Functions help organize code into reusable blocks that can be called when needed. They can accept parameters and return values to process data.`;
-    } else if (code.includes('map') || code.includes('filter')) {
-      return `This code uses array methods like map() or filter() to transform or filter data. These are functional programming techniques that create new arrays based on existing ones without modifying the original data.`;
-    } else {
-      return `This ${language} code creates functionality for handling user interactions and displaying content. It follows common patterns for building interactive applications with proper structure and organization.`;
-    }
-  } catch (error) {
-    console.error("Error explaining code:", error);
-    return "Unable to explain this code at the moment. The code appears to be well-structured and follows standard development practices.";
+  console.log('Explaining code:', code.substring(0, 50) + '...');
+  
+  // Return mock explanation based on code content
+  if (code.includes('useState')) {
+    return `This React component uses the useState hook to manage local state. The useState hook allows components to remember values between renders and update the UI when state changes. This is a fundamental pattern in React for creating interactive components.`;
+  } else if (code.includes('useEffect')) {
+    return `This code uses the useEffect hook, which handles side effects in React components. It runs after the component renders and can be used for data fetching, subscriptions, or manually changing the DOM.`;
+  } else if (code.includes('function') || code.includes('=>')) {
+    return `This code defines functions that perform specific tasks. Functions help organize code into reusable blocks that can be called when needed. They can accept parameters and return values to process data.`;
+  } else if (code.includes('map') || code.includes('filter')) {
+    return `This code uses array methods like map() or filter() to transform or filter data. These are functional programming techniques that create new arrays based on existing ones without modifying the original data.`;
+  } else {
+    return `This ${language} code creates functionality for handling user interactions and displaying content. It follows common patterns for building interactive applications with proper structure and organization.`;
   }
 }
 
 export async function debugCode(code: string, language: string = "javascript", errorMsg?: string): Promise<string> {
-  try {
-    console.log('Debugging code with error:', errorMsg);
-    
-    // Return helpful debugging suggestions based on error
-    if (errorMsg && errorMsg.toLowerCase().includes('undefined')) {
-      return `The error suggests a variable is undefined. Check these common issues:
+  console.log('Debugging code with error:', errorMsg);
+  
+  // Return helpful debugging suggestions based on error
+  if (errorMsg && errorMsg.toLowerCase().includes('undefined')) {
+    return `The error suggests a variable is undefined. Check these common issues:
 1. Make sure all variables are declared before use
 2. Verify imported modules are available
 3. Check object properties exist before accessing them
 4. Initialize state variables properly with useState()`;
-    } else if (errorMsg && errorMsg.toLowerCase().includes('syntax')) {
-      return `Syntax error detected. Common fixes:
+  } else if (errorMsg && errorMsg.toLowerCase().includes('syntax')) {
+    return `Syntax error detected. Common fixes:
 1. Check for missing or extra brackets { }
 2. Verify semicolons and commas are in the right places  
 3. Make sure function syntax is correct
 4. Check for properly closed strings and parentheses`;
-    } else if (errorMsg && errorMsg.toLowerCase().includes('hook')) {
-      return `React hooks error. Remember:
+  } else if (errorMsg && errorMsg.toLowerCase().includes('hook')) {
+    return `React hooks error. Remember:
 1. Only call hooks at the top level of components
 2. Don't call hooks inside loops or conditions
 3. Use hooks only in React function components
 4. Follow the rules of hooks consistently`;
-    } else {
-      return `General debugging suggestions:
+  } else {
+    return `General debugging suggestions:
 1. Check the browser console for detailed error messages
 2. Verify all imports are correct and modules are installed
 3. Make sure variable names are spelled correctly
 4. Ensure functions are called with the right parameters
 5. Check for typos in component names and properties`;
-    }
-  } catch (error) {
-    console.error("Error debugging code:", error);
-    return "Unable to debug this specific error. Please check the browser console for more detailed error information.";
   }
 }
 

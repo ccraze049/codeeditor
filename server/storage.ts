@@ -110,10 +110,10 @@ export class DatabaseStorage implements IStorage {
       const existingUser = memoryStore.users.get(userData.id);
       const resultUser: User = {
         id: userData.id,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        profileImageUrl: userData.profileImageUrl,
+        email: userData.email || '',
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        profileImageUrl: userData.profileImageUrl || null,
         createdAt: existingUser?.createdAt || new Date(),
         updatedAt: new Date()
       };
@@ -180,7 +180,10 @@ export class DatabaseStorage implements IStorage {
       console.error('Database createProject failed, using memory store:', error);
       
       const project: Project = withId({
-        ...projectData,
+        name: projectData.name,
+        description: projectData.description || null,
+        ownerId: projectData.ownerId,
+        isPublic: projectData.isPublic || null,
         language: projectData.language || "javascript",
         template: projectData.template || "react"
       });
@@ -211,11 +214,16 @@ export class DatabaseStorage implements IStorage {
 
   // File operations
   async getProjectFiles(projectId: string): Promise<File[]> {
-    return await db
-      .select()
-      .from(files)
-      .where(eq(files.projectId, projectId))
-      .orderBy(files.name);
+    try {
+      return await db
+        .select()
+        .from(files)
+        .where(eq(files.projectId, projectId))
+        .orderBy(files.name);
+    } catch (error) {
+      console.error('Database getProjectFiles failed, using memory store:', error);
+      return Array.from(memoryStore.files.values()).filter(f => f.projectId === projectId);
+    }
   }
 
   async getFile(id: string): Promise<File | undefined> {
@@ -227,11 +235,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFile(fileData: InsertFile): Promise<File> {
-    const [file] = await db
-      .insert(files)
-      .values(fileData)
-      .returning();
-    return file;
+    try {
+      const [file] = await db
+        .insert(files)
+        .values(fileData)
+        .returning();
+      return file;
+    } catch (error) {
+      console.error('Database createFile failed, using memory store:', error);
+      
+      const file: File = withId({
+        name: fileData.name,
+        path: fileData.path,
+        content: fileData.content || null,
+        projectId: fileData.projectId,
+        parentId: fileData.parentId || null,
+        isFolder: fileData.isFolder || false
+      });
+      memoryStore.files.set(file.id, file);
+      return file;
+    }
   }
 
   async updateFile(id: string, data: Partial<InsertFile>): Promise<File> {
@@ -260,33 +283,68 @@ export class DatabaseStorage implements IStorage {
 
   // AI Conversation operations
   async getAiConversation(projectId: string, userId: string): Promise<AiConversation | undefined> {
-    const [conversation] = await db
-      .select()
-      .from(aiConversations)
-      .where(
-        and(
-          eq(aiConversations.projectId, projectId),
-          eq(aiConversations.userId, userId)
-        )
-      );
-    return conversation;
+    try {
+      const [conversation] = await db
+        .select()
+        .from(aiConversations)
+        .where(
+          and(
+            eq(aiConversations.projectId, projectId),
+            eq(aiConversations.userId, userId)
+          )
+        );
+      return conversation;
+    } catch (error) {
+      console.error('Database getAiConversation failed, using memory store:', error);
+      return Array.from(memoryStore.aiConversations.values())
+        .find(c => c.projectId === projectId && c.userId === userId);
+    }
   }
 
   async createAiConversation(conversationData: InsertAiConversation): Promise<AiConversation> {
-    const [conversation] = await db
-      .insert(aiConversations)
-      .values(conversationData)
-      .returning();
-    return conversation;
+    try {
+      const [conversation] = await db
+        .insert(aiConversations)
+        .values(conversationData)
+        .returning();
+      return conversation;
+    } catch (error) {
+      console.error('Database createAiConversation failed, using memory store:', error);
+      
+      const conversation: AiConversation = withId({
+        projectId: conversationData.projectId,
+        userId: conversationData.userId,
+        messages: conversationData.messages || []
+      });
+      memoryStore.aiConversations.set(conversation.id, conversation);
+      return conversation;
+    }
   }
 
   async updateAiConversation(id: string, data: Partial<InsertAiConversation>): Promise<AiConversation> {
-    const [conversation] = await db
-      .update(aiConversations)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(aiConversations.id, id))
-      .returning();
-    return conversation;
+    try {
+      const [conversation] = await db
+        .update(aiConversations)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(aiConversations.id, id))
+        .returning();
+      return conversation;
+    } catch (error) {
+      console.error('Database updateAiConversation failed, using memory store:', error);
+      
+      const existing = memoryStore.aiConversations.get(id);
+      if (!existing) {
+        throw new Error('Conversation not found');
+      }
+      
+      const updated: AiConversation = {
+        ...existing,
+        ...data,
+        updatedAt: new Date()
+      };
+      memoryStore.aiConversations.set(id, updated);
+      return updated;
+    }
   }
 
   // Collaboration operations
