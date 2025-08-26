@@ -15,11 +15,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      
+      // Try to get user from storage, create if doesn't exist
+      let user = await storage.getUser(userId);
+      if (!user) {
+        // Create user if doesn't exist
+        await storage.upsertUser({
+          id: userId,
+          email: req.user.claims.email || 'dev@example.com',
+          firstName: req.user.claims.first_name || 'Dev',
+          lastName: req.user.claims.last_name || 'User',
+          profileImageUrl: req.user.claims.profile_image_url || null,
+        });
+        user = await storage.getUser(userId);
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      // Return mock user in development if storage fails
+      if (process.env.NODE_ENV === 'development') {
+        res.json({
+          id: 'dev-user-123',
+          email: 'dev@example.com',
+          firstName: 'Dev',
+          lastName: 'User',
+          profileImageUrl: null
+        });
+      } else {
+        res.status(500).json({ message: "Failed to fetch user" });
+      }
     }
   });
 
