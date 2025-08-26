@@ -4,11 +4,11 @@ import { useRoute } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Monaco from "@/components/Monaco";
-import FileTree from "@/components/FileTree";
-import AIAssistant from "@/components/AIAssistant";
-import Terminal from "@/components/Terminal";
-import EditorTabs from "@/components/EditorTabs";
+import Monaco from "../components/Monaco";
+import FileTree from "../components/FileTree";
+import AIAssistant from "../components/AIAssistant";
+import Terminal from "../components/Terminal";
+import EditorTabs from "../components/EditorTabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ export default function Editor() {
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(true);
   
   // Query for project data
-  const { data: projectData, isLoading: projectLoading } = useQuery({
+  const { data: projectData, isLoading: projectLoading } = useQuery<any>({
     queryKey: isSharedView ? ["/api/shared", projectId] : ["/api/projects", projectId],
     retry: false,
     enabled: !!projectId,

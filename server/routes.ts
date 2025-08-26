@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
-import { generateCode, explainCode, debugCode } from "./gemini";
+import { generateCode, explainCode, debugCode } from "./gemini.js";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {

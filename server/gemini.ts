@@ -10,7 +10,7 @@ export async function generateCode(prompt: string, language: string = "javascrip
     Only return the code without explanations unless specifically asked.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       config: {
         systemInstruction: systemPrompt,
       },
@@ -29,7 +29,7 @@ export async function explainCode(code: string, language: string = "javascript")
     const prompt = `Explain this ${language} code in simple terms, including what it does and how it works:\n\n${code}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 
@@ -51,7 +51,7 @@ export async function debugCode(code: string, language: string = "javascript", e
     prompt += "\n\nProvide specific suggestions for fixing any issues you find.";
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 
@@ -67,7 +67,7 @@ export async function optimizeCode(code: string, language: string = "javascript"
     const prompt = `Optimize this ${language} code for better performance and readability:\n\n${code}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 
@@ -83,7 +83,7 @@ export async function suggestImprovements(code: string, language: string = "java
     const prompt = `Analyze this ${language} code and suggest improvements for best practices, security, and maintainability:\n\n${code}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 

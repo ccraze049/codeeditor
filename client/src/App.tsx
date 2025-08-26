@@ -5,9 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
-import Landing from "@/pages/Landing";
-import Home from "@/pages/Home";
-import Editor from "@/pages/Editor";
+import Landing from "./pages/Landing";
+import Home from "./pages/Home";
+import Editor from "./pages/Editor";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
