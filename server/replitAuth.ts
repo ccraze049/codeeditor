@@ -34,8 +34,13 @@ export function getSession() {
   
   const isProduction = process.env.NODE_ENV === 'production';
   
+  // Use environment variable or generate a development secret
+  const sessionSecret = process.env.SESSION_SECRET || 
+    (isProduction ? (() => { throw new Error("SESSION_SECRET is required in production") })() : 
+     'dev-session-secret-' + Math.random().toString(36).substring(2, 15));
+  
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: sessionSecret,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
