@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 84% 4.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222.2 84% 4.9%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(217.2 91.2% 59.8%);
+  --primary-foreground: hsl(222.2 84% 4.9%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
+  --ring: hsl(224.3 76.3% 94.0%);
+  --radius: 0.5rem;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  /* Custom IDE colors */
+  --ide-bg-primary: hsl(220 13% 9%);
+  --ide-bg-secondary: hsl(215 14% 13%);
+  --ide-bg-tertiary: hsl(217 19% 27%);
+  --ide-text-primary: hsl(210 40% 98%);
+  --ide-text-secondary: hsl(215 20.2% 65.1%);
+  --ide-text-accent: hsl(217.2 91.2% 59.8%);
+  --ide-border: hsl(217.2 32.6% 17.5%);
+  --ide-success: hsl(142 71% 45%);
+  --ide-warning: hsl(38 92% 50%);
+  --ide-error: hsl(0 72% 51%);
+  --ide-purple: hsl(271 81% 56%);
+  --ide-orange: hsl(25 95% 53%);
+  --ide-yellow: hsl(54 92% 59%);
+  --ide-green: hsl(142 71% 45%);
+  --ide-blue: hsl(199 89% 48%);
+  --ide-red: hsl(0 72% 51%);
+}
+
+.dark {
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 84% 4.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222.2 84% 4.9%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(217.2 91.2% 59.8%);
+  --primary-foreground: hsl(222.2 84% 4.9%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
+  --ring: hsl(224.3 76.3% 94.0%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-color: var(--ide-bg-primary);
+    color: var(--ide-text-primary);
+  }
+}
+
+@layer components {
+  .ide-bg-primary {
+    background-color: var(--ide-bg-primary);
+  }
+  
+  .ide-bg-secondary {
+    background-color: var(--ide-bg-secondary);
+  }
+  
+  .ide-bg-tertiary {
+    background-color: var(--ide-bg-tertiary);
+  }
+  
+  .ide-text-primary {
+    color: var(--ide-text-primary);
+  }
+  
+  .ide-text-secondary {
+    color: var(--ide-text-secondary);
+  }
+  
+  .ide-text-accent {
+    color: var(--ide-text-accent);
+  }
+  
+  .ide-border {
+    border-color: var(--ide-border);
+  }
+  
+  .syntax-keyword {
+    color: var(--ide-purple);
+  }
+  
+  .syntax-string {
+    color: var(--ide-green);
+  }
+  
+  .syntax-number {
+    color: var(--ide-orange);
+  }
+  
+  .syntax-function {
+    color: var(--ide-yellow);
+  }
+  
+  .syntax-variable {
+    color: var(--ide-blue);
+  }
+  
+  .syntax-comment {
+    color: var(--ide-text-secondary);
+  }
+  
+  .syntax-tag {
+    color: var(--ide-red);
+  }
+  
+  .syntax-attribute {
+    color: var(--ide-green);
+  }
+}

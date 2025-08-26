@@ -1,0 +1,224 @@
+import {
+  users,
+  projects,
+  files,
+  aiConversations,
+  projectCollaborators,
+  type User,
+  type UpsertUser,
+  type Project,
+  type InsertProject,
+  type File,
+  type InsertFile,
+  type AiConversation,
+  type InsertAiConversation,
+  type ProjectCollaborator,
+  type InsertProjectCollaborator,
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
+
+// Interface for storage operations
+export interface IStorage {
+  // User operations
+  // (IMPORTANT) these user operations are mandatory for Replit Auth.
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
+  // Project operations
+  getUserProjects(userId: string): Promise<Project[]>;
+  getProject(id: string): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: string, data: Partial<InsertProject>): Promise<Project>;
+  deleteProject(id: string): Promise<void>;
+  
+  // File operations
+  getProjectFiles(projectId: string): Promise<File[]>;
+  getFile(id: string): Promise<File | undefined>;
+  createFile(file: InsertFile): Promise<File>;
+  updateFile(id: string, data: Partial<InsertFile>): Promise<File>;
+  deleteFile(id: string): Promise<void>;
+  
+  // AI Conversation operations
+  getAiConversation(projectId: string, userId: string): Promise<AiConversation | undefined>;
+  createAiConversation(conversation: InsertAiConversation): Promise<AiConversation>;
+  updateAiConversation(id: string, data: Partial<InsertAiConversation>): Promise<AiConversation>;
+  
+  // Collaboration operations
+  getCollaboration(projectId: string, userId: string): Promise<ProjectCollaborator | undefined>;
+  addCollaborator(collaboration: InsertProjectCollaborator): Promise<ProjectCollaborator>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // User operations
+  // (IMPORTANT) these user operations are mandatory for Replit Auth.
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  // Project operations
+  async getUserProjects(userId: string): Promise<Project[]> {
+    return await db
+      .select()
+      .from(projects)
+      .where(eq(projects.ownerId, userId))
+      .orderBy(desc(projects.updatedAt));
+  }
+
+  async getProject(id: string): Promise<Project | undefined> {
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, id));
+    return project;
+  }
+
+  async createProject(projectData: InsertProject): Promise<Project> {
+    const [project] = await db
+      .insert(projects)
+      .values(projectData)
+      .returning();
+    return project;
+  }
+
+  async updateProject(id: string, data: Partial<InsertProject>): Promise<Project> {
+    const [project] = await db
+      .update(projects)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(projects.id, id))
+      .returning();
+    return project;
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    // Delete all related files first
+    await db.delete(files).where(eq(files.projectId, id));
+    // Delete all related conversations
+    await db.delete(aiConversations).where(eq(aiConversations.projectId, id));
+    // Delete all collaborators
+    await db.delete(projectCollaborators).where(eq(projectCollaborators.projectId, id));
+    // Delete the project
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  // File operations
+  async getProjectFiles(projectId: string): Promise<File[]> {
+    return await db
+      .select()
+      .from(files)
+      .where(eq(files.projectId, projectId))
+      .orderBy(files.name);
+  }
+
+  async getFile(id: string): Promise<File | undefined> {
+    const [file] = await db
+      .select()
+      .from(files)
+      .where(eq(files.id, id));
+    return file;
+  }
+
+  async createFile(fileData: InsertFile): Promise<File> {
+    const [file] = await db
+      .insert(files)
+      .values(fileData)
+      .returning();
+    return file;
+  }
+
+  async updateFile(id: string, data: Partial<InsertFile>): Promise<File> {
+    const [file] = await db
+      .update(files)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(files.id, id))
+      .returning();
+    return file;
+  }
+
+  async deleteFile(id: string): Promise<void> {
+    // Delete all child files/folders recursively
+    const childFiles = await db
+      .select()
+      .from(files)
+      .where(eq(files.parentId, id));
+    
+    for (const child of childFiles) {
+      await this.deleteFile(child.id);
+    }
+    
+    // Delete the file itself
+    await db.delete(files).where(eq(files.id, id));
+  }
+
+  // AI Conversation operations
+  async getAiConversation(projectId: string, userId: string): Promise<AiConversation | undefined> {
+    const [conversation] = await db
+      .select()
+      .from(aiConversations)
+      .where(
+        and(
+          eq(aiConversations.projectId, projectId),
+          eq(aiConversations.userId, userId)
+        )
+      );
+    return conversation;
+  }
+
+  async createAiConversation(conversationData: InsertAiConversation): Promise<AiConversation> {
+    const [conversation] = await db
+      .insert(aiConversations)
+      .values(conversationData)
+      .returning();
+    return conversation;
+  }
+
+  async updateAiConversation(id: string, data: Partial<InsertAiConversation>): Promise<AiConversation> {
+    const [conversation] = await db
+      .update(aiConversations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(aiConversations.id, id))
+      .returning();
+    return conversation;
+  }
+
+  // Collaboration operations
+  async getCollaboration(projectId: string, userId: string): Promise<ProjectCollaborator | undefined> {
+    const [collaboration] = await db
+      .select()
+      .from(projectCollaborators)
+      .where(
+        and(
+          eq(projectCollaborators.projectId, projectId),
+          eq(projectCollaborators.userId, userId)
+        )
+      );
+    return collaboration;
+  }
+
+  async addCollaborator(collaborationData: InsertProjectCollaborator): Promise<ProjectCollaborator> {
+    const [collaboration] = await db
+      .insert(projectCollaborators)
+      .values(collaborationData)
+      .returning();
+    return collaboration;
+  }
+}
+
+export const storage = new DatabaseStorage();
