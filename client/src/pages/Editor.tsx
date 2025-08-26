@@ -90,11 +90,23 @@ export default function Editor() {
     return false;
   };
 
-  const handleRunProject = () => {
-    toast({
-      title: "Running Project",
-      description: "Starting development server...",
-    });
+  const handleRunProject = async () => {
+    try {
+      toast({
+        title: "Project Running",
+        description: "Live preview generated! Check the preview tab.",
+      });
+
+      // Show preview panel
+      setActiveBottomTab("preview");
+      setIsBottomPanelOpen(true);
+    } catch (error) {
+      toast({
+        title: "Run Failed",
+        description: "Failed to generate preview.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleShareProject = () => {
@@ -429,6 +441,15 @@ export default function Editor() {
                 >
                   Debug Console
                 </Button>
+                <Button
+                  variant={activeBottomTab === "preview" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setActiveBottomTab("preview")}
+                  className="px-4 py-2 text-sm rounded-none"
+                  data-testid="tab-preview"
+                >
+                  Preview
+                </Button>
                 
                 <div className="ml-auto pr-4 flex items-center space-x-2">
                   <Button
@@ -458,6 +479,16 @@ export default function Editor() {
                 {activeBottomTab === "debug" && (
                   <div className="p-4 text-ide-text-secondary">
                     Debug console ready.
+                  </div>
+                )}
+                {activeBottomTab === "preview" && (
+                  <div className="flex-1 bg-white">
+                    <iframe
+                      src={`/api/projects/${projectId}/preview-html`}
+                      className="w-full h-full border-0"
+                      title="Live Preview"
+                      sandbox="allow-scripts allow-same-origin"
+                    />
                   </div>
                 )}
               </div>

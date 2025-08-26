@@ -93,14 +93,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isFolder: false,
       });
 
-      // Create CSS file
+      // Create CSS file with proper CSS content
       const cssContent = await generateCode(`Generate CSS styles for: ${prompt}`, 'css');
       await storage.createFile({
         projectId: project.id,
         name: "App.css",
         path: "/App.css",
-        content: cssContent.includes('.') ? cssContent : 
-          `.App {\n  text-align: center;\n  padding: 20px;\n  font-family: Arial, sans-serif;\n}\n\nbutton {\n  padding: 10px 20px;\n  margin: 10px;\n  background: #007bff;\n  color: white;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background: #0056b3;\n}`,
+        content: cssContent,
         isFolder: false,
       });
 
@@ -441,6 +440,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching shared project:", error);
       res.status(500).json({ message: "Failed to fetch shared project" });
+    }
+  });
+
+  // Project preview generation - return HTML content for iframe
+  app.get('/api/projects/:id/preview-html', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getProject(id);
+      
+      if (!project) {
+        return res.status(404).send('<h1>Project not found</h1>');
+      }
+
+      const files = await storage.getProjectFiles(id);
+      
+      // Find App.js and App.css files
+      const appJsFile = files.find((f: any) => f.name === 'App.js');
+      const appCssFile = files.find((f: any) => f.name === 'App.css');
+      
+      if (!appJsFile) {
+        return res.status(400).send('<h1>App.js file not found</h1>');
+      }
+
+      // Clean JS code - remove imports and export default
+      let jsCode = appJsFile.content
+        .replace(/import.*from.*['"]/g, '// ')
+        .replace(/export default App;?/g, '');
+
+      // Generate preview HTML with React code
+      const previewHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${project.name} - Preview</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    ${appCssFile ? appCssFile.content : ''}
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    ${jsCode}
+    
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      res.send(previewHtml);
+      
+    } catch (error) {
+      console.error("Error generating preview:", error);
+      res.status(500).send('<h1>Failed to generate preview</h1>');
+    }
+  });
+
+  // Simple project preview endpoint that returns preview data
+  app.get('/api/projects/:id/preview', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getProject(id);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const files = await storage.getProjectFiles(id);
+      const appJsFile = files.find((f: any) => f.name === 'App.js');
+      
+      if (!appJsFile) {
+        return res.status(400).json({ message: "App.js file not found" });
+      }
+
+      res.json({ 
+        message: "Preview available",
+        previewUrl: `/api/projects/${id}/preview-html`
+      });
+      
+    } catch (error) {
+      console.error("Error generating preview:", error);
+      res.status(500).json({ message: "Failed to generate preview" });
     }
   });
 
