@@ -13,7 +13,7 @@ export default function Landing() {
             <span className="text-lg font-bold">CodeSpace</span>
           </div>
           <Button 
-            onClick={() => window.location.href = '/api/login'}
+            onClick={() => window.location.href = '/login'}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
             data-testid="button-login"
           >
@@ -35,7 +35,7 @@ export default function Landing() {
           <div className="flex items-center justify-center space-x-4">
             <Button 
               size="lg" 
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/login'}
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3"
               data-testid="button-get-started"
             >
@@ -136,7 +136,7 @@ export default function Landing() {
           </p>
           <Button 
             size="lg" 
-            onClick={() => window.location.href = '/api/login'}
+            onClick={() => window.location.href = '/login'}
             className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3"
             data-testid="button-sign-up-cta"
           >
