@@ -386,7 +386,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-import { MongoStorage } from "./mongoStorage";
-
-// Use MongoDB storage for production data
-export const storage = new MongoStorage();
+// Use PostgreSQL storage (DatabaseStorage) as the primary storage implementation
+export const storage = new DatabaseStorage();

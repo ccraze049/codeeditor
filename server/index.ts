@@ -2,8 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { Server as SocketServer } from "socket.io";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { connectMongoDB } from "./mongodb";
-
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -39,12 +37,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Connect to MongoDB Atlas first
-  try {
-    await connectMongoDB();
-  } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
-  }
 
   const server = await registerRoutes(app);
   
