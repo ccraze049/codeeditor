@@ -8,8 +8,8 @@ neonConfig.webSocketConstructor = ws;
 neonConfig.useSecureWebSocket = false; // Disable secure WebSocket for development
 neonConfig.pipelineConnect = false;
 
-// Use local database URL instead of environment variable
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/codespace';
+// Use environment database URL (configured by Replit)
+const DATABASE_URL = process.env.DATABASE_URL;
 
 // Create pool with simple configuration
 let pool: Pool;

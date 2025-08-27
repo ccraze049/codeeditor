@@ -106,18 +106,21 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Database upsertUser failed, using memory store:', error);
       
+      // Ensure user ID is defined for fallback
+      const userId = userData.id || nanoid();
+      
       // Use in-memory store as fallback
-      const existingUser = memoryStore.users.get(userData.id);
+      const existingUser = memoryStore.users.get(userId);
       const resultUser: User = {
-        id: userData.id,
-        email: userData.email ?? '',
-        firstName: userData.firstName ?? '',
-        lastName: userData.lastName ?? '',
-        profileImageUrl: userData.profileImageUrl ?? null,
+        id: userId,
+        email: userData.email || '',
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        profileImageUrl: userData.profileImageUrl || null,
         createdAt: existingUser?.createdAt || new Date(),
         updatedAt: new Date()
       };
-      memoryStore.users.set(userData.id, resultUser);
+      memoryStore.users.set(userId, resultUser);
       return resultUser;
     }
   }
