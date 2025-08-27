@@ -13,12 +13,12 @@ export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (email: string, name?: string) => {
+  const handleLogin = async (email: string, password: string, name?: string) => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, name }),
+        body: JSON.stringify({ email, password, name }),
         headers: { 'Content-Type': 'application/json' }
       });
       
@@ -42,12 +42,12 @@ export default function Login() {
     }
   };
 
-  const handleSignup = async (email: string, firstName: string, lastName: string) => {
+  const handleSignup = async (email: string, password: string, firstName: string, lastName: string) => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
-        body: JSON.stringify({ email, firstName, lastName }),
+        body: JSON.stringify({ email, password, firstName, lastName }),
         headers: { 'Content-Type': 'application/json' }
       });
       
@@ -88,11 +88,11 @@ export default function Login() {
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
-              <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
+              <LoginForm onSubmit={(email, password, name) => handleLogin(email, password, name)} isLoading={isLoading} />
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
-              <SignupForm onSubmit={handleSignup} isLoading={isLoading} />
+              <SignupForm onSubmit={(email, password, firstName, lastName) => handleSignup(email, password, firstName, lastName)} isLoading={isLoading} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -101,14 +101,15 @@ export default function Login() {
   );
 }
 
-function LoginForm({ onSubmit, isLoading }: { onSubmit: (email: string, name?: string) => void; isLoading: boolean }) {
+function LoginForm({ onSubmit, isLoading }: { onSubmit: (email: string, password: string, name?: string) => void; isLoading: boolean }) {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      onSubmit(email.trim(), name.trim() || undefined);
+    if (email.trim() && password.trim()) {
+      onSubmit(email.trim(), password.trim(), name.trim() || undefined);
     }
   };
 
@@ -127,6 +128,18 @@ function LoginForm({ onSubmit, isLoading }: { onSubmit: (email: string, name?: s
         />
       </div>
       <div className="space-y-2">
+        <Label htmlFor="login-password">Password</Label>
+        <Input
+          id="login-password"
+          type="password"
+          placeholder="Your password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          data-testid="input-login-password"
+        />
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="login-name">Name (Optional)</Label>
         <Input
           id="login-name"
@@ -140,7 +153,7 @@ function LoginForm({ onSubmit, isLoading }: { onSubmit: (email: string, name?: s
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={isLoading || !email.trim()}
+        disabled={isLoading || !email.trim() || !password.trim()}
         data-testid="button-login"
       >
         {isLoading ? 'Logging in...' : 'Login'}
@@ -149,15 +162,16 @@ function LoginForm({ onSubmit, isLoading }: { onSubmit: (email: string, name?: s
   );
 }
 
-function SignupForm({ onSubmit, isLoading }: { onSubmit: (email: string, firstName: string, lastName: string) => void; isLoading: boolean }) {
+function SignupForm({ onSubmit, isLoading }: { onSubmit: (email: string, password: string, firstName: string, lastName: string) => void; isLoading: boolean }) {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim() && firstName.trim()) {
-      onSubmit(email.trim(), firstName.trim(), lastName.trim());
+    if (email.trim() && password.trim() && firstName.trim()) {
+      onSubmit(email.trim(), password.trim(), firstName.trim(), lastName.trim());
     }
   };
 
@@ -173,6 +187,18 @@ function SignupForm({ onSubmit, isLoading }: { onSubmit: (email: string, firstNa
           onChange={(e) => setEmail(e.target.value)}
           required
           data-testid="input-signup-email"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signup-password">Password</Label>
+        <Input
+          id="signup-password"
+          type="password"
+          placeholder="Choose a strong password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          data-testid="input-signup-password"
         />
       </div>
       <div className="space-y-2">
@@ -201,7 +227,7 @@ function SignupForm({ onSubmit, isLoading }: { onSubmit: (email: string, firstNa
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={isLoading || !email.trim() || !firstName.trim()}
+        disabled={isLoading || !email.trim() || !password.trim() || !firstName.trim()}
         data-testid="button-signup"
       >
         {isLoading ? 'Creating Account...' : 'Sign Up'}

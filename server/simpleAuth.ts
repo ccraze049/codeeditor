@@ -49,7 +49,7 @@ export async function setupSimpleAuth(app: Express) {
   // Login endpoint - creates a simple user session
   app.post('/api/auth/login', async (req, res) => {
     try {
-      const { email, name } = req.body;
+      const { email, password, name } = req.body;
       
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
@@ -122,7 +122,7 @@ export async function setupSimpleAuth(app: Express) {
   // Simple signup - same as login for demo purposes
   app.post('/api/auth/signup', async (req, res) => {
     try {
-      const { email, name, firstName, lastName } = req.body;
+      const { email, password, firstName, lastName } = req.body;
       
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
