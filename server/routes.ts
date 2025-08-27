@@ -7,6 +7,9 @@ import { generateCode, explainCode, debugCode } from "./gemini.js";
 import { parseAndCreateProjectFiles } from "./codeParser.js";
 import { z } from "zod";
 import { spawn } from "child_process";
+import path from "path";
+import fs from "fs/promises";
+import { fileSystemSync } from "./fileSystemSync.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -220,11 +223,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // File routes
+  // Enhanced file routes with filesystem sync
   app.get('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { projectId } = req.params;
+      const { sync } = req.query; // Optional sync parameter
       
       // Check project access
       const project = await storage.getProject(projectId);
@@ -240,6 +244,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Perform filesystem sync if requested or if project has few files
+      const currentFiles = await storage.getProjectFiles(projectId);
+      
+      if (sync === 'true' || currentFiles.length <= 3) {
+        try {
+          const projectPath = path.join(process.cwd(), 'projects', projectId);
+          await fileSystemSync.syncProjectFiles({
+            projectId,
+            projectPath,
+            includeNodeModules: true,
+            maxDepth: 8
+          });
+          console.log(`Filesystem sync completed for project ${projectId}`);
+        } catch (syncError) {
+          console.warn(`Filesystem sync failed for project ${projectId}:`, syncError);
+        }
+      }
+
+      // Get updated files list
       const files = await storage.getProjectFiles(projectId);
       res.json(files);
     } catch (error) {
@@ -526,7 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Terminal command execution route
+  // Enhanced terminal execution with package management support
   app.post('/api/terminal/execute', isAuthenticated, async (req: any, res) => {
     try {
       const { command, projectId } = req.body;
@@ -563,11 +586,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Determine working directory
+      let workingDir = process.cwd();
+      if (projectId) {
+        const projectPath = path.join(process.cwd(), 'projects', projectId);
+        try {
+          await fs.access(projectPath);
+          workingDir = projectPath;
+        } catch (error) {
+          // Project directory doesn't exist, create it
+          await fs.mkdir(projectPath, { recursive: true });
+          workingDir = projectPath;
+        }
+      }
+
+      // Track if this is an npm command that might modify files
+      const isNpmCommand = baseCommand === 'npm';
+      const isPackageModifyingCommand = isNpmCommand && (
+        commandParts.includes('install') || 
+        commandParts.includes('uninstall') || 
+        commandParts.includes('update') ||
+        commandParts.includes('add') ||
+        commandParts.includes('remove')
+      );
+
       // Execute command
       const child = spawn(baseCommand, commandParts.slice(1), {
-        cwd: process.cwd(),
+        cwd: workingDir,
         env: process.env,
-        timeout: 30000 // 30 second timeout
+        timeout: 120000 // 2 minute timeout for npm commands
       });
 
       let output = '';
@@ -581,12 +628,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on('close', async (code) => {
         const result = error || output || `Command completed with exit code ${code}`;
+        
+        // If npm command succeeded and modified packages, sync filesystem
+        if (code === 0 && isPackageModifyingCommand && projectId) {
+          try {
+            console.log(`Package modifying command completed, syncing filesystem for project ${projectId}`);
+            
+            // Sync package.json specifically
+            const packageJsonPath = '/package.json';
+            await fileSystemSync.syncSingleFile(projectId, workingDir, packageJsonPath);
+            
+            // Also sync node_modules if it exists
+            try {
+              await fs.access(path.join(workingDir, 'node_modules'));
+              // Perform full sync to update node_modules visibility
+              await fileSystemSync.syncProjectFiles({
+                projectId,
+                projectPath: workingDir,
+                includeNodeModules: true,
+                maxDepth: 3
+              });
+            } catch (nmError) {
+              // node_modules doesn't exist yet, skip
+            }
+            
+            console.log(`Filesystem sync completed after npm command`);
+          } catch (syncError) {
+            console.warn(`Failed to sync filesystem after npm command:`, syncError);
+          }
+        }
+        
         res.json({ 
           output: result,
           type: code === 0 ? 'output' : 'error',
-          exitCode: code
+          exitCode: code,
+          filesUpdated: isPackageModifyingCommand && code === 0
         });
       });
 

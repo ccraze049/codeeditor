@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -17,6 +17,7 @@ import {
 
 interface TerminalProps {
   projectId: string;
+  onFilesChanged?: () => void;
 }
 
 interface TerminalLine {
@@ -26,7 +27,7 @@ interface TerminalLine {
   timestamp: Date;
 }
 
-export default function Terminal({ projectId }: TerminalProps) {
+export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([
     {
       id: '1',
@@ -48,6 +49,7 @@ export default function Terminal({ projectId }: TerminalProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Auto-focus input and scroll to bottom
   useEffect(() => {
@@ -89,6 +91,19 @@ export default function Terminal({ projectId }: TerminalProps) {
             addLine(line, data.type === 'error' ? 'error' : 'output');
           }
         });
+        
+        // If files were updated (npm command), refresh file list
+        if (data.filesUpdated) {
+          console.log('Files updated after npm command, refreshing file list');
+          // Invalidate file queries to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
+          // Also call onFilesChanged callback if provided
+          if (onFilesChanged) {
+            onFilesChanged();
+          }
+          // Add a system message
+          addLine('Files updated - package.json and dependencies synced', 'system');
+        }
       }
     },
     onError: (error) => {
