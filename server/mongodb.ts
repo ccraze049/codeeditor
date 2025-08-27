@@ -1,18 +1,11 @@
 import mongoose from 'mongoose';
 
-// MongoDB connection configuration
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI environment variable is not defined');
-}
+// MongoDB connection configuration - Hardcoded URL
+const MONGODB_URI = 'mongodb+srv://your-username:your-password@your-cluster.mongodb.net/your-database?retryWrites=true&w=majority';
 
 // Connect to MongoDB Atlas
 export async function connectMongoDB() {
   try {
-    if (!MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined');
-    }
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB Atlas successfully');
   } catch (error) {
