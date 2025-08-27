@@ -437,18 +437,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = await storage.getProjectFiles(id);
       
-      // Find App.js and App.css files
-      const appJsFile = files.find((f: any) => f.name === 'App.js');
+      // Find App.js/App.jsx and App.css files
+      const appJsFile = files.find((f: any) => f.name === 'App.js' || f.name === 'App.jsx');
       const appCssFile = files.find((f: any) => f.name === 'App.css');
       
       if (!appJsFile) {
-        return res.status(400).send('<h1>App.js file not found</h1>');
+        return res.status(400).send('<h1>App.js or App.jsx file not found</h1>');
       }
 
       // Clean JS code - remove imports and export default
       let jsCode = (appJsFile.content || '')
         .replace(/import.*from.*['"]/g, '// ')
-        .replace(/export default App;?/g, '');
+        .replace(/export default App;?/g, '')
+        .replace(/"""/g, '"'); // Fix escaped quotes
 
       // Generate preview HTML with React code
       const previewHtml = `<!DOCTYPE html>
@@ -497,10 +498,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const files = await storage.getProjectFiles(id);
-      const appJsFile = files.find((f: any) => f.name === 'App.js');
+      const appJsFile = files.find((f: any) => f.name === 'App.js' || f.name === 'App.jsx');
       
       if (!appJsFile) {
-        return res.status(400).json({ message: "App.js file not found" });
+        return res.status(400).json({ message: "App.js or App.jsx file not found" });
       }
 
       res.json({ 
