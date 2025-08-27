@@ -11,11 +11,12 @@ export function getSession() {
   return session({
     secret: process.env.SESSION_SECRET || 'codespace-dev-secret-key-2024',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Changed to true for development
     cookie: {
       httpOnly: true,
       secure: false, // Set to true in production with HTTPS
       maxAge: sessionTtl,
+      sameSite: 'lax', // Add sameSite for better compatibility
     },
   });
 }
@@ -51,8 +52,8 @@ export async function setupSimpleAuth(app: Express) {
     try {
       const { email, password, name } = req.body;
       
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Create or get user
@@ -71,6 +72,14 @@ export async function setupSimpleAuth(app: Express) {
         email: user.email,
         firstName: user.firstName
       };
+      
+      // Save session explicitly for login
+      await new Promise((resolve, reject) => {
+        (req as any).session.save((err: any) => {
+          if (err) reject(err);
+          else resolve(null);
+        });
+      });
 
       res.json({
         message: "Login successful",
@@ -124,8 +133,8 @@ export async function setupSimpleAuth(app: Express) {
     try {
       const { email, password, firstName, lastName } = req.body;
       
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Create new user
@@ -144,6 +153,14 @@ export async function setupSimpleAuth(app: Express) {
         email: user.email,
         firstName: user.firstName
       };
+      
+      // Save session explicitly for signup
+      await new Promise((resolve, reject) => {
+        (req as any).session.save((err: any) => {
+          if (err) reject(err);
+          else resolve(null);
+        });
+      });
 
       res.json({
         message: "Signup successful",

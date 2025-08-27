@@ -22,15 +22,18 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' }
       });
       
-      if (!response.ok) throw new Error('Login failed');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
 
       toast({
         title: "Welcome!",
         description: "Successfully logged in to CodeSpace IDE",
       });
 
-      // Redirect to home page
-      setLocation('/');
+      // Refresh auth state and redirect to home page
+      window.location.href = '/';
     } catch (error) {
       toast({
         title: "Login Failed",
@@ -51,15 +54,18 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' }
       });
       
-      if (!response.ok) throw new Error('Signup failed');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Signup failed');
+      }
 
       toast({
         title: "Account Created!",
         description: "Welcome to CodeSpace IDE",
       });
 
-      // Redirect to home page
-      setLocation('/');
+      // Refresh auth state and redirect to home page
+      window.location.href = '/';
     } catch (error) {
       toast({
         title: "Signup Failed",
