@@ -406,7 +406,7 @@ export default function Editor() {
           />
 
           <div className="flex flex-1 overflow-hidden">
-            <div className={`flex-1 ${isBottomPanelOpen ? 'h-3/5' : 'h-full'}`}>
+            <div className={`flex-1 ${isBottomPanelOpen ? 'h-1/2' : 'h-full'}`}>
               <Monaco
                 file={activeFile}
                 projectId={projectId!}
@@ -425,7 +425,7 @@ export default function Editor() {
 
           {/* Bottom Panel */}
           {isBottomPanelOpen && (
-            <div className="h-2/5 bg-ide-bg-secondary border-t border-ide-border flex flex-col">
+            <div className="h-1/2 bg-ide-bg-secondary border-t border-ide-border flex flex-col">
               <div className="h-10 flex items-center border-b border-ide-border">
                 <Button
                   variant={activeBottomTab === "terminal" ? "secondary" : "ghost"}
@@ -504,13 +504,26 @@ export default function Editor() {
                   </div>
                 )}
                 {activeBottomTab === "preview" && (
-                  <div className="flex-1 bg-white">
-                    <iframe
-                      src={`/api/projects/${projectId}/preview-html`}
-                      className="w-full h-full border-0"
-                      title="Live Preview"
-                      sandbox="allow-scripts allow-same-origin"
-                    />
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between p-2 bg-ide-bg-tertiary border-b border-ide-border">
+                      <span className="text-sm text-ide-text-secondary">Live Preview</span>
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(`/api/projects/${projectId}/preview-html`, '_blank')}
+                        className="text-xs bg-blue-600 hover:bg-blue-700"
+                        data-testid="button-open-preview"
+                      >
+                        Open in New Tab
+                      </Button>
+                    </div>
+                    <div className="flex-1 bg-white overflow-hidden">
+                      <iframe
+                        src={`/api/projects/${projectId}/preview-html`}
+                        className="w-full h-full border-0"
+                        title="Live Preview"
+                        sandbox="allow-scripts allow-same-origin"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
