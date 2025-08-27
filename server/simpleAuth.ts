@@ -142,7 +142,7 @@ export async function setupSimpleAuth(app: Express) {
       const user = await storage.upsertUser({
         id: userId,
         email: email,
-        firstName: firstName || name || email.split('@')[0],
+        firstName: firstName || email.split('@')[0],
         lastName: lastName || '',
         profileImageUrl: null
       });
