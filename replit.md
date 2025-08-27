@@ -7,6 +7,8 @@ CodeSpace is a comprehensive browser-based integrated development environment (I
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Data storage: MongoDB Atlas for important data storage with hardcoded connection.
+Authentication: Simple email-based authentication system (fixed sign up/sign in errors).
 
 ## System Architecture
 
