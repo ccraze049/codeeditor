@@ -98,23 +98,33 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-ide-bg-primary text-ide-text-primary">
       {/* Header */}
-      <header className="h-14 bg-ide-bg-secondary border-b border-ide-border flex items-center justify-between px-4">
-        <div className="flex items-center space-x-4">
+      <header className="h-14 bg-ide-bg-secondary border-b border-ide-border flex items-center justify-between px-2 sm:px-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <div className="flex items-center space-x-2">
             <Code className="h-6 w-6 text-primary" />
             <span className="font-bold text-lg">CodeSpace</span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <Button
             variant="outline"
             size="sm"
-            className="border-ide-border hover:bg-ide-bg-tertiary"
+            className="border-ide-border hover:bg-ide-bg-tertiary hidden sm:flex"
             data-testid="button-settings"
           >
             <Settings className="h-4 w-4 mr-1" />
             Settings
+          </Button>
+          
+          {/* Mobile Settings Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-ide-border hover:bg-ide-bg-tertiary sm:hidden p-2"
+            data-testid="button-settings-mobile"
+          >
+            <Settings className="h-4 w-4" />
           </Button>
           
           <div className="flex items-center space-x-2">
@@ -130,7 +140,7 @@ export default function Home() {
                 {user?.firstName?.[0] || user?.email?.[0] || "U"}
               </div>
             )}
-            <span className="text-sm font-medium" data-testid="text-user-name">
+            <span className="text-sm font-medium hidden sm:block" data-testid="text-user-name">
               {user?.firstName || user?.email?.split("@")[0] || "User"}
             </span>
           </div>
@@ -171,8 +181,8 @@ export default function Home() {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 space-y-4 sm:space-y-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             {/* AI Project Creator */}
             <AIProjectCreator onProjectCreated={(projectId) => {
               // Refresh projects and navigate to editor
@@ -273,12 +283,14 @@ export default function Home() {
 
             <Button variant="outline" className="border-ide-border hover:bg-ide-bg-secondary" data-testid="button-import-project">
               <Folder className="mr-2 h-4 w-4" />
-              Import Project
+              <span className="hidden sm:inline">Import Project</span>
+              <span className="sm:hidden">Import</span>
             </Button>
             
             <Button variant="outline" className="border-ide-border hover:bg-ide-bg-secondary" data-testid="button-explore-public">
               <Globe className="mr-2 h-4 w-4" />
-              Explore Public Projects
+              <span className="hidden sm:inline">Explore Public Projects</span>
+              <span className="sm:hidden">Explore</span>
             </Button>
           </div>
         </div>

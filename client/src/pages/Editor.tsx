@@ -45,8 +45,30 @@ export default function Editor() {
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState("terminal");
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(true);
+  
+  // Mobile detection and responsive behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto-collapse sidebar on mobile
+      if (mobile && !isSidebarCollapsed) {
+        setIsSidebarCollapsed(true);
+      }
+      // Auto-close AI assistant on mobile
+      if (mobile && isAIAssistantOpen) {
+        setIsAIAssistantOpen(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [isSidebarCollapsed, isAIAssistantOpen]);
   
   // Query for project data
   const { data: projectData, isLoading: projectLoading } = useQuery<any>({
@@ -181,14 +203,14 @@ export default function Editor() {
   return (
     <div className="h-screen bg-ide-bg-primary text-ide-text-primary flex flex-col overflow-hidden">
       {/* Top Navigation */}
-      <nav className="h-14 bg-ide-bg-secondary border-b border-ide-border flex items-center justify-between px-4 flex-shrink-0">
-        <div className="flex items-center space-x-4">
+      <nav className="h-14 bg-ide-bg-secondary border-b border-ide-border flex items-center justify-between px-2 sm:px-4 flex-shrink-0">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <div className="flex items-center space-x-2">
             <Code className="h-5 w-5 text-primary" />
-            <span className="font-bold text-lg">CodeSpace</span>
+            <span className="font-bold text-lg hidden sm:block">CodeSpace</span>
           </div>
           
-          <div className="flex items-center space-x-3 ml-6">
+          <div className="flex items-center space-x-2 sm:space-x-3 ml-2 sm:ml-6">
             <div className="flex items-center space-x-2">
               <span className="text-sm">{getFileIcon("", true)}</span>
               <span className="font-medium" data-testid="text-project-name">{project.name}</span>
@@ -203,8 +225,8 @@ export default function Editor() {
                   className="text-xs bg-green-600 hover:bg-green-700"
                   data-testid="button-run"
                 >
-                  <Play className="h-3 w-3 mr-1" />
-                  Run
+                  <Play className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Run</span>
                 </Button>
                 <Button 
                   size="sm" 
@@ -212,13 +234,13 @@ export default function Editor() {
                   className="text-xs bg-primary hover:bg-primary/90"
                   data-testid="button-share"
                 >
-                  <Share className="h-3 w-3 mr-1" />
-                  Share
+                  <Share className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Share</span>
                 </Button>
                 <Button 
                   size="sm" 
                   onClick={handleDeployProject}
-                  className="text-xs bg-purple-600 hover:bg-purple-700"
+                  className="text-xs bg-purple-600 hover:bg-purple-700 hidden sm:flex"
                   data-testid="button-deploy"
                 >
                   <Rocket className="h-3 w-3 mr-1" />
@@ -229,10 +251,10 @@ export default function Editor() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Collaboration indicators */}
           {!isSharedView && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 hidden md:flex">
               <div className="flex -space-x-2">
                 <div className="w-7 h-7 rounded-full bg-primary border-2 border-ide-bg-secondary flex items-center justify-center text-xs font-medium">
                   {user?.firstName?.[0] || "U"}
@@ -265,7 +287,7 @@ export default function Editor() {
                   {user.firstName?.[0] || user.email?.[0] || "U"}
                 </div>
               )}
-              <span className="text-sm font-medium" data-testid="text-user-name">
+              <span className="text-sm font-medium hidden sm:block" data-testid="text-user-name">
                 {user.firstName || user.email?.split("@")[0] || "User"}
               </span>
             </div>
@@ -276,7 +298,7 @@ export default function Editor() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className={`${isSidebarCollapsed ? 'w-12' : 'w-64'} bg-ide-bg-secondary border-r border-ide-border flex flex-col transition-all duration-300`}>
+        <div className={`${isSidebarCollapsed ? 'w-12' : isMobile ? 'w-full absolute z-10 h-full' : 'w-64'} bg-ide-bg-secondary border-r border-ide-border flex flex-col transition-all duration-300`}>
           {!isSidebarCollapsed ? (
             <>
               <div className="p-3 border-b border-ide-border">

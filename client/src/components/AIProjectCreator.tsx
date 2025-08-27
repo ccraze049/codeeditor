@@ -101,7 +101,7 @@ export default function AIProjectCreator({ onProjectCreated }: AIProjectCreatorP
           AI Create
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary max-w-md">
+      <DialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary max-w-md mx-4 sm:mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
@@ -131,7 +131,7 @@ export default function AIProjectCreator({ onProjectCreated }: AIProjectCreatorP
               data-testid="input-ai-project-name"
             />
           </div>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
             <Button
               variant="outline"
               onClick={() => setIsOpen(false)}
