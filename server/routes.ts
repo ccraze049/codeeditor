@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
 import { generateCode, explainCode, debugCode } from "./gemini.js";
+import { parseAndCreateProjectFiles } from "./codeParser.js";
 import { z } from "zod";
 import { spawn } from "child_process";
 
@@ -60,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI-powered project creation
+  // AI-powered project creation with multi-file support
   app.post('/api/projects/ai-create', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -71,8 +72,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create project first
+      const projectName = name || `AI Project - ${new Date().toLocaleString()}`;
       const projectData = {
-        name: name || `AI Project - ${new Date().toLocaleString()}`,
+        name: projectName,
         description: `Generated from prompt: ${prompt}`,
         ownerId: userId,
         isPublic: false,
@@ -80,41 +82,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const project = await storage.createProject(projectData);
       
-      // Generate code using AI
-      const generatedCode = await generateCode(prompt, 'javascript');
+      // Parse AI-generated code into separate files
+      console.log('Creating multi-file AI project for prompt:', prompt);
+      const parsedProject = await parseAndCreateProjectFiles(prompt, projectName);
       
-      // Create main component file with AI generated code
-      await storage.createFile({
-        projectId: project.id,
-        name: "App.js",
-        path: "/App.js",
-        content: generatedCode.includes('import React') ? generatedCode : 
-          `import React, { useState } from 'react';\nimport './App.css';\n\n${generatedCode}\n\nexport default App;`,
-        isFolder: false,
-      });
-
-      // Create CSS file with proper CSS content
-      const cssContent = await generateCode(`Generate CSS styles for: ${prompt}`, 'css');
-      await storage.createFile({
-        projectId: project.id,
-        name: "App.css",
-        path: "/App.css",
-        content: cssContent,
-        isFolder: false,
-      });
-
-      // Create package.json
-      await storage.createFile({
-        projectId: project.id,
-        name: "package.json",
-        path: "/package.json",
-        content: `{\n  "name": "${project.name.toLowerCase().replace(/\\s+/g, '-')}",\n  "version": "1.0.0",\n  "private": true,\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0",\n    "react-scripts": "5.0.1"\n  },\n  "scripts": {\n    "start": "react-scripts start",\n    "build": "react-scripts build",\n    "test": "react-scripts test",\n    "eject": "react-scripts eject"\n  }\n}`,
-        isFolder: false,
-      });
+      // Create all the parsed files
+      const createdFiles = [];
+      for (const file of parsedProject.files) {
+        try {
+          const createdFile = await storage.createFile({
+            projectId: project.id,
+            name: file.name,
+            path: file.path,
+            content: file.content,
+            isFolder: false,
+          });
+          createdFiles.push(createdFile);
+          console.log(`Created file: ${file.name} (${file.language})`);
+        } catch (fileError) {
+          console.error(`Error creating file ${file.name}:`, fileError);
+        }
+      }
 
       res.json({ 
         project,
-        message: "Project created successfully with AI-generated code!"
+        files: createdFiles,
+        structure: parsedProject.projectStructure,
+        message: `AI project created with ${createdFiles.length} files! Each language has its own dedicated file.`
       });
     } catch (error) {
       console.error("Error creating AI project:", error);
@@ -464,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Clean JS code - remove imports and export default
-      let jsCode = appJsFile.content
+      let jsCode = (appJsFile.content || '')
         .replace(/import.*from.*['"]/g, '// ')
         .replace(/export default App;?/g, '');
 
