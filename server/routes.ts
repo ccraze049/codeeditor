@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupSimpleAuth, isAuthenticated } from "./simpleAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
 import { generateCode, explainCode, debugCode } from "./gemini.js";
 import { parseAndCreateProjectFiles } from "./codeParser.js";
@@ -13,49 +13,14 @@ import { fileSystemSync } from "./fileSystemSync.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  await setupSimpleAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      
-      // Try to get user from storage, create if doesn't exist
-      let user = await storage.getUser(userId);
-      if (!user) {
-        // Create user if doesn't exist
-        await storage.upsertUser({
-          id: userId,
-          email: req.user.claims.email || 'dev@example.com',
-          firstName: req.user.claims.first_name || 'Dev',
-          lastName: req.user.claims.last_name || 'User',
-          profileImageUrl: req.user.claims.profile_image_url || null,
-        });
-        user = await storage.getUser(userId);
-      }
-      
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      // Return mock user in development if storage fails
-      if (process.env.NODE_ENV === 'development') {
-        res.json({
-          id: 'dev-user-123',
-          email: 'dev@example.com',
-          firstName: 'Dev',
-          lastName: 'User',
-          profileImageUrl: null
-        });
-      } else {
-        res.status(500).json({ message: "Failed to fetch user" });
-      }
-    }
-  });
+  // Note: Auth routes are now handled in simpleAuth.ts
 
   // Project routes
   app.get('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const projects = await storage.getUserProjects(userId);
       res.json(projects);
     } catch (error) {
@@ -67,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered project creation with multi-file support
   app.post('/api/projects/ai-create', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { prompt, name } = req.body;
       
       if (!prompt) {
@@ -121,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const projectData = insertProjectSchema.parse({
         ...req.body,
         ownerId: userId,
@@ -162,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const project = await storage.getProject(id);
       
@@ -188,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const project = await storage.getProject(id);
       
@@ -207,7 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const project = await storage.getProject(id);
       
@@ -226,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced file routes with filesystem sync
   app.get('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { projectId } = req.params;
       const { sync } = req.query; // Optional sync parameter
       
@@ -273,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { projectId } = req.params;
       
       // Check project access
@@ -296,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const file = await storage.getFile(id);
       
@@ -321,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const file = await storage.getFile(id);
       
@@ -421,7 +386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project sharing
   app.post('/api/projects/:id/share', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const project = await storage.getProject(id);
       

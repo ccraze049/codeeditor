@@ -6,16 +6,21 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "./pages/Landing";
+import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Editor from "./pages/Editor";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+      {!isAuthenticated ? (
+        <Route path="/" component={Login} />
       ) : (
         <>
           <Route path="/" component={Home} />
