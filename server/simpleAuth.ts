@@ -56,38 +56,13 @@ export async function setupSimpleAuth(app: Express) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      // Try to login with existing user or create new one
-      let user: any;
-      try {
-        // Simple approach: just try to upsert the user
-        // If it fails due to duplicate email, fall back to memory store
-        user = await storage.upsertUser({
-          id: nanoid(),
-          email: email,
-          firstName: name || email.split('@')[0],
-          lastName: '',
-          profileImageUrl: null
-        });
-      } catch (error: any) {
-        console.log('Database upsert failed, using existing user from memory store');
-        // Get the existing user from memory store
-        const memoryUsers = Array.from((storage as any).memoryStore?.users?.values() || []);
-        user = memoryUsers.find((u: any) => u.email === email);
-        
-        if (!user) {
-          // Create in memory as fallback
-          user = {
-            id: nanoid(),
-            email: email,
-            firstName: name || email.split('@')[0],
-            lastName: '',
-            profileImageUrl: null,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          (storage as any).memoryStore?.users?.set(user.id, user);
-        }
-      }
+      // Login or create user
+      const user = await storage.upsertUser({
+        email: email,
+        firstName: name || email.split('@')[0],
+        lastName: '',
+        profileImageUrl: null
+      });
 
       // Store user in session
       (req as any).session.user = {
@@ -160,36 +135,13 @@ export async function setupSimpleAuth(app: Express) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      // Try to create new user or get existing one
-      let user: any;
-      try {
-        user = await storage.upsertUser({
-          id: nanoid(),
-          email: email,
-          firstName: firstName || email.split('@')[0],
-          lastName: lastName || '',
-          profileImageUrl: null
-        });
-      } catch (error: any) {
-        console.log('Database upsert failed, using existing user from memory store');
-        // Get the existing user from memory store
-        const memoryUsers = Array.from((storage as any).memoryStore?.users?.values() || []);
-        user = memoryUsers.find((u: any) => u.email === email);
-        
-        if (!user) {
-          // Create in memory as fallback
-          user = {
-            id: nanoid(),
-            email: email,
-            firstName: firstName || email.split('@')[0],
-            lastName: lastName || '',
-            profileImageUrl: null,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          (storage as any).memoryStore?.users?.set(user.id, user);
-        }
-      }
+      // Signup or get existing user
+      const user = await storage.upsertUser({
+        email: email,
+        firstName: firstName || email.split('@')[0],
+        lastName: lastName || '',
+        profileImageUrl: null
+      });
 
       // Store user in session
       (req as any).session.user = {

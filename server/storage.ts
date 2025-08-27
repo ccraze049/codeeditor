@@ -91,33 +91,56 @@ export class DatabaseStorage implements IStorage {
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     try {
+      // First try to find existing user by email
+      if (userData.email) {
+        const [existingUser] = await db.select().from(users).where(eq(users.email, userData.email));
+        if (existingUser) {
+          // Update existing user
+          const [updatedUser] = await db
+            .update(users)
+            .set({
+              ...userData,
+              updatedAt: new Date(),
+            })
+            .where(eq(users.email, userData.email))
+            .returning();
+          return updatedUser;
+        }
+      }
+      
+      // Create new user if doesn't exist
       const [user] = await db
         .insert(users)
         .values(userData)
-        .onConflictDoUpdate({
-          target: users.id,
-          set: {
-            ...userData,
-            updatedAt: new Date(),
-          },
-        })
         .returning();
       return user;
     } catch (error) {
       console.error('Database upsertUser failed, using memory store:', error);
       
-      // Ensure user ID is defined for fallback
-      const userId = userData.id || nanoid();
+      // Check memory store for existing user by email
+      if (userData.email) {
+        const existingUser = Array.from(memoryStore.users.values()).find(u => u.email === userData.email);
+        if (existingUser) {
+          // Update existing user in memory
+          const updatedUser = {
+            ...existingUser,
+            ...userData,
+            updatedAt: new Date()
+          };
+          memoryStore.users.set(existingUser.id, updatedUser);
+          return updatedUser;
+        }
+      }
       
-      // Use in-memory store as fallback
-      const existingUser = memoryStore.users.get(userId);
+      // Create new user in memory
+      const userId = userData.id || nanoid();
       const resultUser: User = {
         id: userId,
         email: userData.email || '',
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         profileImageUrl: userData.profileImageUrl || null,
-        createdAt: existingUser?.createdAt || new Date(),
+        createdAt: new Date(),
         updatedAt: new Date()
       };
       memoryStore.users.set(userId, resultUser);
