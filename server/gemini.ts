@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize Gemini AI with API key from environment
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const genAI = new GoogleGenerativeAI('AIzaSyCmda9m2FncVcxd7Gfr--gusDqw95YA3u4');
 const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
 export async function explainCode(code: string, language: string = "javascript"): Promise<string> {
