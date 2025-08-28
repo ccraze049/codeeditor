@@ -364,23 +364,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ message: "Message is required" });
     }
 
-    // Simple text-based AI response
-    const messageLower = message.toLowerCase();
-    let aiResponse = '';
-    
-    if (messageLower.includes('explain') || messageLower.includes('what')) {
-      aiResponse = `I can help explain code concepts. This appears to be asking about code functionality. In React applications, components manage state and render UI elements based on user interactions and data changes.`;
-    } else if (messageLower.includes('debug') || messageLower.includes('error') || messageLower.includes('fix')) {
-      aiResponse = `For debugging, I recommend checking the browser console for error messages, verifying all imports are correct, and ensuring proper React hooks usage. Common issues include missing dependencies and incorrect state management.`;
-    } else if (messageLower.includes('counter')) {
-      aiResponse = `A counter app typically uses useState to manage a number value, with buttons to increment/decrement it. The state updates trigger re-renders to show the new count value to the user.`;
-    } else {
-      aiResponse = `I'm here to help with your coding questions! You can ask me to explain code, debug issues, or generate new code snippets. What specific task would you like assistance with?`;
-    }
+    try {
+      // Import AI functions
+      const { chatWithAI } = require('./gemini');
+      
+      // Use the real AI chat function for all messages
+      const aiResponse = await chatWithAI(message);
 
-    res.json({ 
-      response: aiResponse
-    });
+      res.json({ 
+        response: aiResponse
+      });
+    } catch (error) {
+      console.error('Error in AI chat:', error);
+      res.json({ 
+        response: "I'm here to help with your coding questions! You can ask me to explain code, debug issues, generate new code snippets, or ask general programming questions. What specific task would you like assistance with?"
+      });
+    }
   });
 
   // Project sharing

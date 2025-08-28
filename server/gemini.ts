@@ -183,3 +183,23 @@ button:hover {
 }`;
   }
 }
+
+// General AI chat function for any question
+export async function chatWithAI(message: string, context?: string): Promise<string> {
+  console.log('Chatting with Gemini 2.0-flash for message:', message);
+  
+  try {
+    const prompt = `You are a helpful AI coding assistant. Please respond to this question or request in a clear, helpful way. ${context ? `Context: ${context}` : ''}
+
+User message: "${message}"
+
+Provide a helpful, informative response that directly addresses their question or request.`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error chatting with Gemini:', error);
+    return `I'm here to help with your coding questions! You can ask me to explain code, debug issues, generate new code snippets, or ask general programming questions. What specific task would you like assistance with?`;
+  }
+}
