@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSimpleAuth, isAuthenticated } from "./simpleAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
-import { generateCode, explainCode, debugCode } from "./gemini.js";
+import { generateCode, explainCode, debugCode, chatWithAI } from "./gemini.js";
 import { parseAndCreateProjectFiles } from "./codeParser.js";
 import { z } from "zod";
 import { spawn } from "child_process";
@@ -365,9 +365,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // Import AI functions
-      const { chatWithAI } = require('./gemini');
-      
       // Use the real AI chat function for all messages
       const aiResponse = await chatWithAI(message);
 
