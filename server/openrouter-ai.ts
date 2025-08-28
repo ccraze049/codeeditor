@@ -1,7 +1,11 @@
 import axios from "axios";
 
-const API_KEY = "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";
+const API_KEY = process.env.OPENROUTER_API_KEY;
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+
+if (!API_KEY) {
+  console.warn('OPENROUTER_API_KEY not found in environment variables');
+}
 
 // Helper function to make OpenRouter API calls
 async function callOpenRouterAPI(prompt: string): Promise<string> {
@@ -9,7 +13,7 @@ async function callOpenRouterAPI(prompt: string): Promise<string> {
     const res = await axios.post(
       ENDPOINT,
       {
-        model: "moonshotai/kimi-dev-72b:free",
+        model: "deepseek/deepseek-r1-0528-qwen3-8b:free",
         messages: [
           { role: "user", content: prompt }
         ]
