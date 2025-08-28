@@ -266,11 +266,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFile(id: string): Promise<File | undefined> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(eq(files.id, id));
-    return file;
+    try {
+      const [file] = await db
+        .select()
+        .from(files)
+        .where(eq(files.id, id));
+      return file;
+    } catch (error) {
+      console.error('Database getFile failed, using memory store:', error);
+      return memoryStore.files.get(id);
+    }
   }
 
   async createFile(fileData: InsertFile): Promise<File> {
@@ -297,27 +302,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFile(id: string, data: Partial<InsertFile>): Promise<File> {
-    const [file] = await db
-      .update(files)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(files.id, id))
-      .returning();
-    return file;
+    try {
+      const [file] = await db
+        .update(files)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(files.id, id))
+        .returning();
+      return file;
+    } catch (error) {
+      console.error('Database updateFile failed, using memory store:', error);
+      
+      const existingFile = memoryStore.files.get(id);
+      if (!existingFile) {
+        throw new Error(`File with id ${id} not found in memory store`);
+      }
+      
+      const updatedFile: File = {
+        ...existingFile,
+        ...data,
+        updatedAt: new Date()
+      };
+      memoryStore.files.set(id, updatedFile);
+      return updatedFile;
+    }
   }
 
   async deleteFile(id: string): Promise<void> {
-    // Delete all child files/folders recursively
-    const childFiles = await db
-      .select()
-      .from(files)
-      .where(eq(files.parentId, id));
-    
-    for (const child of childFiles) {
-      await this.deleteFile(child.id);
+    try {
+      // Delete all child files/folders recursively
+      const childFiles = await db
+        .select()
+        .from(files)
+        .where(eq(files.parentId, id));
+      
+      for (const child of childFiles) {
+        await this.deleteFile(child.id);
+      }
+      
+      // Delete the file itself
+      await db.delete(files).where(eq(files.id, id));
+    } catch (error) {
+      console.error('Database deleteFile failed, using memory store:', error);
+      
+      // Delete all child files/folders recursively from memory store
+      const allFiles = Array.from(memoryStore.files.values());
+      const childFiles = allFiles.filter(f => f.parentId === id);
+      
+      for (const child of childFiles) {
+        await this.deleteFile(child.id);
+      }
+      
+      // Delete the file itself from memory store
+      memoryStore.files.delete(id);
     }
-    
-    // Delete the file itself
-    await db.delete(files).where(eq(files.id, id));
   }
 
   // AI Conversation operations
