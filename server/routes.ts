@@ -441,21 +441,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appJsFile = files.find((f: any) => f.name === 'App.js' || f.name === 'App.jsx');
       const appCssFile = files.find((f: any) => f.name === 'App.css');
       
+      // Find all other JSX/JS component files (but not package.json)
+      const componentFiles = files.filter((f: any) => 
+        (f.name.endsWith('.jsx') || f.name.endsWith('.js')) && 
+        f.name !== 'App.js' && f.name !== 'App.jsx' &&
+        f.name !== 'package.json'
+      );
+      
       if (!appJsFile) {
         return res.status(400).send('<h1>App.js or App.jsx file not found</h1>');
       }
 
-      // Clean JS code - completely fix escaped quotes and prepare for browser
-      let jsCode = (appJsFile.content || '')
-        .split('\n') // Split into lines for better processing
-        .filter(line => {
-          const trimmed = line.trim();
-          return !trimmed.startsWith('import ') && !trimmed.startsWith('export default');
-        }) // Remove import and export lines
-        .join('\n')
-        .replace(/""([^"]*)""/g, '"$1"') // Fix double quotes: ""text"" -> "text"
-        .replace(/alert\(""([^"]*)""(?:\)|;)/g, 'alert("$1")') // Fix alert with double quotes
-        .trim();
+      // Clean all component files
+      const cleanComponent = (content: string) => {
+        return (content || '')
+          .split('\n')
+          .filter(line => {
+            const trimmed = line.trim();
+            return !trimmed.startsWith('import ') && !trimmed.startsWith('export default');
+          })
+          .join('\n')
+          .replace(/""([^"]*)""/g, '"$1"')
+          .replace(/alert\(""([^"]*)""(?:\)|;)/g, 'alert("$1")')
+          .trim();
+      };
+
+      // Clean the main App component
+      let jsCode = cleanComponent(appJsFile.content || '');
+      
+      // Clean all additional components
+      let additionalComponents = componentFiles.map(file => cleanComponent(file.content || '')).join('\n\n');
 
       // Generate preview HTML with React code
       const previewHtml = `<!DOCTYPE html>
@@ -475,8 +490,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState } = React;
+    const { useState, useEffect } = React;
     
+    // All additional components first
+    ${additionalComponents}
+    
+    // Main App component last
     ${jsCode}
     
     const root = ReactDOM.createRoot(document.getElementById('root'));
