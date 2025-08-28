@@ -1,41 +1,62 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from "axios";
 
-// Initialize Gemini AI with API key from environment
-const genAI = new GoogleGenerativeAI('AIzaSyCmda9m2FncVcxd7Gfr--gusDqw95YA3u4');
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+const API_KEY = "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";
+const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+
+// Helper function to make OpenRouter API calls
+async function callOpenRouterAPI(prompt: string): Promise<string> {
+  try {
+    const res = await axios.post(
+      ENDPOINT,
+      {
+        model: "moonshotai/kimi-dev-72b:free",
+        messages: [
+          { role: "user", content: prompt }
+        ]
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${API_KEY}`,
+        }
+      }
+    );
+
+    return res.data.choices[0].message.content;
+  } catch (err: any) {
+    console.error("OpenRouter AI Error:", err.response?.data || err.message);
+    throw err;
+  }
+}
 
 export async function explainCode(code: string, language: string = "javascript"): Promise<string> {
-  console.log('Explaining code using Gemini 2.0-flash:', code.substring(0, 50) + '...');
+  console.log('Explaining code using OpenRouter AI:', code.substring(0, 50) + '...');
   
   try {
     const prompt = `Please explain this ${language} code in simple, clear terms that a beginner could understand. Focus on what the code does, how it works, and any important patterns or concepts it demonstrates:\n\n\`\`\`${language}\n${code}\n\`\`\``;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    return await callOpenRouterAPI(prompt);
   } catch (error) {
-    console.error('Error explaining code with Gemini:', error);
+    console.error('Error explaining code with OpenRouter AI:', error);
     return `This ${language} code creates functionality for handling user interactions and displaying content. It follows common patterns for building interactive applications with proper structure and organization.`;
   }
 }
 
 export async function debugCode(code: string, language: string = "javascript", errorMsg?: string): Promise<string> {
-  console.log('Debugging code with Gemini 2.0-flash. Error:', errorMsg);
+  console.log('Debugging code with OpenRouter AI. Error:', errorMsg);
   
   try {
     const prompt = `I have a ${language} code issue${errorMsg ? ` with this error: "${errorMsg}"` : ''}. Please analyze the code and provide specific debugging suggestions and solutions:\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nProvide clear, actionable steps to fix the issue.`;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    return await callOpenRouterAPI(prompt);
   } catch (error) {
-    console.error('Error debugging code with Gemini:', error);
+    console.error('Error debugging code with OpenRouter AI:', error);
     return `General debugging suggestions:\n1. Check the browser console for detailed error messages\n2. Verify all imports are correct and modules are installed\n3. Make sure variable names are spelled correctly\n4. Ensure functions are called with the right parameters\n5. Check for typos in component names and properties`;
   }
 }
 
 export async function generateCode(prompt: string, language: string = "javascript"): Promise<string> {
-  console.log('Generating code with Gemini 2.0-flash for prompt:', prompt);
+  console.log('Generating code with OpenRouter AI for prompt:', prompt);
   
   // If it's CSS generation request, use CSS generator
   if (language === 'css' || prompt.toLowerCase().includes('css') || prompt.toLowerCase().includes('styles')) {
@@ -56,11 +77,9 @@ Requirements:
 
 Return only the complete code without explanations or markdown formatting.`;
     
-    const result = await model.generateContent(codePrompt);
-    const response = await result.response;
-    return response.text();
+    return await callOpenRouterAPI(codePrompt);
   } catch (error) {
-    console.error('Error generating code with Gemini:', error);
+    console.error('Error generating code with OpenRouter AI:', error);
     return `import React, { useState } from 'react';
 import './App.css';
 
@@ -91,7 +110,7 @@ export default App;`;
 }
 
 async function generateCSSStyles(prompt: string): Promise<string> {
-  console.log('Generating CSS with Gemini 2.0-flash for prompt:', prompt);
+  console.log('Generating CSS with OpenRouter AI for prompt:', prompt);
   
   try {
     const cssPrompt = `Create modern, mobile-responsive CSS styles for: "${prompt}"
@@ -107,11 +126,9 @@ Requirements:
 
 Return only the CSS code without explanations or markdown formatting.`;
     
-    const result = await model.generateContent(cssPrompt);
-    const response = await result.response;
-    return response.text();
+    return await callOpenRouterAPI(cssPrompt);
   } catch (error) {
-    console.error('Error generating CSS with Gemini:', error);
+    console.error('Error generating CSS with OpenRouter AI:', error);
     return `.App {
   text-align: center;
   padding: 20px;
@@ -186,7 +203,7 @@ button:hover {
 
 // General AI chat function for any question
 export async function chatWithAI(message: string, context?: string): Promise<string> {
-  console.log('Chatting with Gemini 2.0-flash for message:', message);
+  console.log('Chatting with OpenRouter AI for message:', message);
   
   try {
     let prompt = `You are a helpful AI coding assistant. Please respond to this question or request in a clear, helpful way.`;
@@ -215,11 +232,9 @@ User message: "${message}"
 Provide a helpful, informative response that directly addresses their question or request.`;
     }
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    return await callOpenRouterAPI(prompt);
   } catch (error) {
-    console.error('Error chatting with Gemini:', error);
+    console.error('Error chatting with OpenRouter AI:', error);
     return `I'm here to help with your coding questions! You can ask me to explain code, debug issues, generate new code snippets, or ask general programming questions. What specific task would you like assistance with?`;
   }
 }

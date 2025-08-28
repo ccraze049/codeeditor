@@ -1,5 +1,5 @@
 // AI Code Parser - Separates different languages from generated code into appropriate files
-import { generateCode } from './gemini.js';
+import { generateCode } from './openrouter-ai.js';
 
 export interface ParsedCodeFile {
   name: string;

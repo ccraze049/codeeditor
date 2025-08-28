@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSimpleAuth, isAuthenticated } from "./simpleAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
-import { generateCode, explainCode, debugCode, chatWithAI } from "./gemini.js";
+import { generateCode, explainCode, debugCode, chatWithAI } from "./openrouter-ai.js";
 import { parseAndCreateProjectFiles } from "./codeParser.js";
 import { z } from "zod";
 import { spawn } from "child_process";
