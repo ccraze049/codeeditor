@@ -54,7 +54,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Creating multi-file AI project for prompt:', prompt);
       const parsedProject = await parseAndCreateProjectFiles(prompt, projectName);
       
-      // Create all the parsed files
+      // First, create necessary folders
+      const foldersToCreate = new Set<string>();
+      for (const file of parsedProject.files) {
+        const pathParts = file.path.split('/').filter(part => part);
+        let currentPath = '';
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          currentPath += '/' + pathParts[i];
+          foldersToCreate.add(currentPath);
+        }
+      }
+
+      // Create folders first
+      for (const folderPath of Array.from(foldersToCreate).sort()) {
+        try {
+          const folderName = folderPath.split('/').pop() || '';
+          await storage.createFile({
+            projectId: project.id,
+            name: folderName,
+            path: folderPath,
+            content: null,
+            isFolder: true,
+          });
+          console.log(`Created folder: ${folderPath}`);
+        } catch (folderError) {
+          console.error(`Error creating folder ${folderPath}:`, folderError);
+        }
+      }
+
+      // Then create all the parsed files
       const createdFiles = [];
       for (const file of parsedProject.files) {
         try {
@@ -556,15 +584,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = await storage.getProjectFiles(id);
       
-      // Find App.js/App.jsx and App.css files
-      const appJsFile = files.find((f: any) => f.name === 'App.js' || f.name === 'App.jsx');
-      const appCssFile = files.find((f: any) => f.name === 'App.css');
+      // Find App.js/App.jsx files (in root or any folder)
+      const appJsFile = files.find((f: any) => 
+        f.name === 'App.js' || f.name === 'App.jsx' || 
+        f.path.endsWith('/App.js') || f.path.endsWith('/App.jsx')
+      );
       
-      // Find all other JSX/JS component files (but not package.json)
+      // Find CSS files from styles folder and root
+      const cssFiles = files.filter((f: any) => 
+        f.name.endsWith('.css') || f.path.includes('styles/')
+      );
+      const appCssFile = cssFiles.find((f: any) => 
+        f.name === 'App.css' || f.path.includes('App.css')
+      ) || cssFiles[0]; // Use first CSS file if App.css not found
+      
+      // Find all component files from components folder and root
       const componentFiles = files.filter((f: any) => 
         (f.name.endsWith('.jsx') || f.name.endsWith('.js')) && 
-        f.name !== 'App.js' && f.name !== 'App.jsx' &&
-        f.name !== 'package.json'
+        !f.name.includes('App.') && 
+        f.name !== 'package.json' &&
+        !f.name.includes('package-lock')
       );
       
       if (!appJsFile) {
@@ -602,7 +641,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    ${appCssFile ? appCssFile.content : ''}
+    /* All CSS files from styles folder and root */
+    ${cssFiles.map(file => file.content || '').join('\n\n')}
+    
+    /* Default body styles */
     body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
   </style>
 </head>
