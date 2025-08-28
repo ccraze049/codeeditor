@@ -469,7 +469,7 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
         </div>
         
         <div className="flex items-center justify-center mt-2">
-          <span className="text-xs text-ide-text-secondary">Powered by Gemini AI</span>
+          <span className="text-xs text-ide-text-secondary">Powered by Moonshot AI</span>
         </div>
       </div>
     </div>

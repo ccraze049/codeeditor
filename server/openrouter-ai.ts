@@ -13,7 +13,7 @@ async function callOpenRouterAPI(prompt: string): Promise<string> {
     const res = await axios.post(
       ENDPOINT,
       {
-        model: "deepseek/deepseek-r1-0528-qwen3-8b:free",
+        model: "moonshotai/kimi-dev-72b:free",
         messages: [
           { role: "user", content: prompt }
         ]
