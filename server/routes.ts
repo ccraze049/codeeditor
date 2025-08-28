@@ -365,8 +365,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // Use the real AI chat function for all messages
-      const aiResponse = await chatWithAI(message);
+      let context = '';
+      
+      // If asking about specific files or UI improvements, get project context
+      if (projectId && (message.toLowerCase().includes('file') || message.toLowerCase().includes('ui') || message.toLowerCase().includes('improve') || message.toLowerCase().includes('app.jsx'))) {
+        try {
+          const project = await storage.getProject(projectId);
+          const files = await storage.getProjectFiles(projectId);
+          
+          // Find App.jsx or main component file
+          const appFile = files.find(f => f.name.toLowerCase().includes('app.jsx') || f.name.toLowerCase().includes('app.js'));
+          
+          if (appFile && appFile.content) {
+            context = `Current project: ${project?.name}\nCurrent App.jsx code:\n${appFile.content.substring(0, 2000)}`;
+          }
+        } catch (err) {
+          console.log('Could not fetch project context:', err);
+        }
+      }
+      
+      // Use the real AI chat function with context
+      const aiResponse = await chatWithAI(message, context);
 
       res.json({ 
         response: aiResponse

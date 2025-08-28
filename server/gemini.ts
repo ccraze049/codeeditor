@@ -189,11 +189,31 @@ export async function chatWithAI(message: string, context?: string): Promise<str
   console.log('Chatting with Gemini 2.0-flash for message:', message);
   
   try {
-    const prompt = `You are a helpful AI coding assistant. Please respond to this question or request in a clear, helpful way. ${context ? `Context: ${context}` : ''}
+    let prompt = `You are a helpful AI coding assistant. Please respond to this question or request in a clear, helpful way.`;
+    
+    // Check if this is a UI improvement request with code context
+    if (context && (message.toLowerCase().includes('ui') || message.toLowerCase().includes('improve') || message.toLowerCase().includes('app.jsx'))) {
+      prompt = `You are a helpful AI coding assistant. The user is asking for UI improvements to their React application. 
+
+${context}
+
+User request: "${message}"
+
+Please provide specific, actionable suggestions for improving the UI. Include:
+1. Specific code improvements or modifications
+2. Modern UI/UX best practices
+3. CSS styling suggestions
+4. Component structure improvements
+5. Accessibility enhancements
+
+Give concrete examples and code snippets where helpful.`;
+    } else {
+      prompt += ` ${context ? `Context: ${context}` : ''}
 
 User message: "${message}"
 
 Provide a helpful, informative response that directly addresses their question or request.`;
+    }
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
