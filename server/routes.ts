@@ -445,11 +445,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send('<h1>App.js or App.jsx file not found</h1>');
       }
 
-      // Clean JS code - remove imports and export default
+      // Clean JS code - remove imports and export default, fix escaped quotes
       let jsCode = (appJsFile.content || '')
         .replace(/import.*from.*['"]/g, '// ')
         .replace(/export default App;?/g, '')
-        .replace(/"""/g, '"'); // Fix escaped quotes
+        .replace(/""([^"]*)""/g, '"$1"') // Fix double escaped quotes like ""calculator"" to "calculator"
+        .replace(/className=""/g, 'className="')
+        .replace(/""([^"]*)""/g, '"$1"'); // Apply fix again for any remaining cases
 
       // Generate preview HTML with React code
       const previewHtml = `<!DOCTYPE html>
