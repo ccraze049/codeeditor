@@ -150,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectId: project.id,
           name: "main.py",
           path: "/main.py",
-          content: `#!/usr/bin/env python3\n\ndef main():\n    print("Hello World!")\n    print("Your Python application is running successfully.")\n    \n    # Simple counter example\n    count = 0\n    while True:\n        user_input = input("Press Enter to increment counter (or 'quit' to exit): ")\n        if user_input.lower() == 'quit':\n            break\n        count += 1\n        print(f"Count: {count}")\n    \n    print("Goodbye!")\n\nif __name__ == "__main__":\n    main()`,
+          content: `#!/usr/bin/env python3\n\ndef main():\n    print("Hello World!")\n    print("Your Python application is running successfully.")\n    \n    # Simple counter example\n    for count in range(1, 6):\n        print(f"Count: {count}")\n    \n    # Math calculation example\n    numbers = [1, 2, 3, 4, 5]\n    total = sum(numbers)\n    print(f"Sum of {numbers} = {total}")\n    \n    print("Program completed successfully!")\n\nif __name__ == "__main__":\n    main()`,
           isFolder: false,
         });
 
@@ -358,6 +358,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedFile);
     } catch (error) {
       console.error("Error updating file:", error);
+      res.status(500).json({ message: "Failed to update file" });
+    }
+  });
+
+  // Simple endpoint to update file content by path
+  app.put('/api/projects/:projectId/files/update', async (req: any, res) => {
+    try {
+      const { projectId } = req.params;
+      const { path, content } = req.body;
+      
+      if (!path || content === undefined) {
+        return res.status(400).json({ message: "Path and content are required" });
+      }
+
+      // Get project files to find the file with matching path
+      const files = await storage.getProjectFiles(projectId);
+      const file = files.find(f => f.path === path);
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const updatedFile = await storage.updateFile(file.id, { content });
+      res.json(updatedFile);
+    } catch (error) {
+      console.error("Error updating file by path:", error);
       res.status(500).json({ message: "Failed to update file" });
     }
   });
