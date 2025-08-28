@@ -132,6 +132,25 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
     onError: handleError,
   });
 
+  const applyCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await apiRequest("POST", "/api/ai/apply-code", {
+        projectId,
+        code,
+      });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Code Applied!",
+        description: data.message,
+      });
+      // Refresh the file tree by invalidating queries
+      window.location.reload();
+    },
+    onError: handleError,
+  });
+
   function handleError(error: Error) {
     if (isUnauthorizedError(error)) {
       toast({
@@ -247,7 +266,8 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
   const isLoading = generateCodeMutation.isPending || 
                    explainCodeMutation.isPending || 
                    debugCodeMutation.isPending || 
-                   chatMutation.isPending;
+                   chatMutation.isPending ||
+                   applyCodeMutation.isPending;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -321,11 +341,13 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => applyCodeMutation.mutate(message.content)}
+                          disabled={applyCodeMutation.isPending}
                           className="text-xs h-6 bg-ide-bg-secondary border-ide-border"
                           data-testid={`button-apply-code-${message.id}`}
                         >
                           <Code className="h-3 w-3 mr-1" />
-                          Apply
+                          {applyCodeMutation.isPending ? 'Applying...' : 'Apply'}
                         </Button>
                       </div>
                     </div>

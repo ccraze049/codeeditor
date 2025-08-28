@@ -489,6 +489,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Apply AI generated code to project
+  app.post('/api/ai/apply-code', isAuthenticated, async (req: any, res) => {
+    try {
+      const { projectId, code } = req.body;
+      
+      if (!projectId || !code) {
+        return res.status(400).json({ message: 'Project ID and code are required' });
+      }
+
+      // Parse the generated code into files
+      const parsedProject = await parseAndCreateProjectFiles(code, 'AI Generated Code');
+      
+      // Create folders first
+      const foldersToCreate = new Set<string>();
+      for (const file of parsedProject.files) {
+        const pathParts = file.path.split('/').filter(part => part);
+        let currentPath = '';
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          currentPath += '/' + pathParts[i];
+          foldersToCreate.add(currentPath);
+        }
+      }
+
+      // Create folders
+      for (const folderPath of Array.from(foldersToCreate).sort()) {
+        try {
+          const folderName = folderPath.split('/').pop() || '';
+          await storage.createFile({
+            projectId,
+            name: folderName,
+            path: folderPath,
+            content: null,
+            isFolder: true,
+          });
+        } catch (folderError) {
+          // Folder might already exist, continue
+        }
+      }
+
+      // Create or update files
+      const createdFiles = [];
+      for (const file of parsedProject.files) {
+        try {
+          // Check if file already exists
+          const existingFiles = await storage.getProjectFiles(projectId);
+          const existingFile = existingFiles.find(f => f.path === file.path);
+          
+          if (existingFile) {
+            // Update existing file
+            const updatedFile = await storage.updateFile(existingFile.id, { content: file.content });
+            createdFiles.push(updatedFile);
+          } else {
+            // Create new file
+            const createdFile = await storage.createFile({
+              projectId,
+              name: file.name,
+              path: file.path,
+              content: file.content,
+              isFolder: false,
+            });
+            createdFiles.push(createdFile);
+          }
+        } catch (fileError) {
+          console.error(`Error creating/updating file ${file.name}:`, fileError);
+        }
+      }
+
+      res.json({ 
+        files: createdFiles,
+        message: `Applied AI code - ${createdFiles.length} files created/updated`
+      });
+    } catch (error) {
+      console.error('Error applying AI code:', error);
+      res.status(500).json({ message: 'Failed to apply AI code' });
+    }
+  });
+
   app.post('/api/ai/chat', isAuthenticated, async (req: any, res) => {
     const { projectId, message } = req.body;
     
