@@ -93,30 +93,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const project = await storage.createProject(projectData);
       
-      // Create initial files
-      await storage.createFile({
-        projectId: project.id,
-        name: "App.js",
-        path: "/App.js",
-        content: `import React, { useState } from 'react';\nimport './App.css';\n\nfunction App() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div className="App">\n      <h1>Hello World!</h1>\n      <button onClick={() => setCount(count + 1)}>\n        Count: {count}\n      </button>\n    </div>\n  );\n}\n\nexport default App;`,
-        isFolder: false,
-      });
+      // Create initial files based on template
+      if (projectData.template === 'react') {
+        // React template
+        await storage.createFile({
+          projectId: project.id,
+          name: "App.js",
+          path: "/App.js",
+          content: `import React, { useState } from 'react';\nimport './App.css';\n\nfunction App() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div className="App">\n      <h1>Hello World!</h1>\n      <button onClick={() => setCount(count + 1)}>\n        Count: {count}\n      </button>\n    </div>\n  );\n}\n\nexport default App;`,
+          isFolder: false,
+        });
 
-      await storage.createFile({
-        projectId: project.id,
-        name: "App.css",
-        path: "/App.css",
-        content: `.App {\n  text-align: center;\n  padding: 20px;\n}\n\nbutton {\n  padding: 10px 20px;\n  margin: 10px;\n  background: #007bff;\n  color: white;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background: #0056b3;\n}`,
-        isFolder: false,
-      });
+        await storage.createFile({
+          projectId: project.id,
+          name: "App.css",
+          path: "/App.css",
+          content: `.App {\n  text-align: center;\n  padding: 20px;\n}\n\nbutton {\n  padding: 10px 20px;\n  margin: 10px;\n  background: #007bff;\n  color: white;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background: #0056b3;\n}`,
+          isFolder: false,
+        });
 
-      await storage.createFile({
-        projectId: project.id,
-        name: "package.json",
-        path: "/package.json",
-        content: `{\n  "name": "${project.name.toLowerCase().replace(/\\s+/g, '-')}",\n  "version": "1.0.0",\n  "private": true,\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0",\n    "react-scripts": "5.0.1"\n  },\n  "scripts": {\n    "start": "react-scripts start",\n    "build": "react-scripts build",\n    "test": "react-scripts test",\n    "eject": "react-scripts eject"\n  }\n}`,
-        isFolder: false,
-      });
+        await storage.createFile({
+          projectId: project.id,
+          name: "package.json",
+          path: "/package.json",
+          content: `{\n  "name": "${project.name.toLowerCase().replace(/\\s+/g, '-')}",\n  "version": "1.0.0",\n  "private": true,\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0",\n    "react-scripts": "5.0.1"\n  },\n  "scripts": {\n    "start": "react-scripts start",\n    "build": "react-scripts build",\n    "test": "react-scripts test",\n    "eject": "react-scripts eject"\n  }\n}`,
+          isFolder: false,
+        });
+      } else if (projectData.template === 'node') {
+        // Node.js template
+        await storage.createFile({
+          projectId: project.id,
+          name: "index.js",
+          path: "/index.js",
+          content: `const http = require('http');\nconst port = process.env.PORT || 3000;\n\nconst server = http.createServer((req, res) => {\n  res.writeHead(200, {'Content-Type': 'text/html'});\n  res.end('<h1>Hello World!</h1><p>Your Node.js server is running successfully.</p>');\n});\n\nserver.listen(port, () => {\n  console.log(\`Server running on port \${port}\`);\n});`,
+          isFolder: false,
+        });
+
+        await storage.createFile({
+          projectId: project.id,
+          name: "package.json",
+          path: "/package.json",
+          content: `{\n  "name": "${project.name.toLowerCase().replace(/\\s+/g, '-')}",\n  "version": "1.0.0",\n  "description": "A simple Node.js application",\n  "main": "index.js",\n  "scripts": {\n    "start": "node index.js",\n    "dev": "nodemon index.js"\n  },\n  "keywords": [],\n  "author": "",\n  "license": "ISC",\n  "devDependencies": {\n    "nodemon": "^2.0.20"\n  }\n}`,
+          isFolder: false,
+        });
+
+        await storage.createFile({
+          projectId: project.id,
+          name: "README.md",
+          path: "/README.md",
+          content: `# ${project.name}\n\nA simple Node.js application.\n\n## Getting Started\n\n1. Install dependencies:\n\`\`\`bash\nnpm install\n\`\`\`\n\n2. Run the application:\n\`\`\`bash\nnpm start\n\`\`\`\n\n3. For development with auto-reload:\n\`\`\`bash\nnpm run dev\n\`\`\`\n\nThe server will start on port 3000.`,
+          isFolder: false,
+        });
+      } else if (projectData.template === 'python') {
+        // Python template
+        await storage.createFile({
+          projectId: project.id,
+          name: "main.py",
+          path: "/main.py",
+          content: `#!/usr/bin/env python3\n\ndef main():\n    print("Hello World!")\n    print("Your Python application is running successfully.")\n    \n    # Simple counter example\n    count = 0\n    while True:\n        user_input = input("Press Enter to increment counter (or 'quit' to exit): ")\n        if user_input.lower() == 'quit':\n            break\n        count += 1\n        print(f"Count: {count}")\n    \n    print("Goodbye!")\n\nif __name__ == "__main__":\n    main()`,
+          isFolder: false,
+        });
+
+        await storage.createFile({
+          projectId: project.id,
+          name: "requirements.txt",
+          path: "/requirements.txt",
+          content: `# Add your Python dependencies here\n# Example:\n# requests==2.28.0\n# flask==2.2.0`,
+          isFolder: false,
+        });
+
+        await storage.createFile({
+          projectId: project.id,
+          name: "README.md",
+          path: "/README.md",
+          content: `# ${project.name}\n\nA simple Python application.\n\n## Getting Started\n\n1. Install dependencies (if any):\n\`\`\`bash\npip install -r requirements.txt\n\`\`\`\n\n2. Run the application:\n\`\`\`bash\npython main.py\n\`\`\``,
+          isFolder: false,
+        });
+      } else if (projectData.template === 'vanilla') {
+        // Vanilla JavaScript template
+        await storage.createFile({
+          projectId: project.id,
+          name: "index.html",
+          path: "/index.html",
+          content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>${project.name}</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <div class="container">\n        <h1>Hello World!</h1>\n        <p>Your Vanilla JavaScript project is ready!</p>\n        <button id="clickBtn">Click me: <span id="counter">0</span></button>\n    </div>\n    <script src="script.js"></script>\n</body>\n</html>`,
+          isFolder: false,
+        });
+
+        await storage.createFile({
+          projectId: project.id,
+          name: "style.css",
+          path: "/style.css",
+          content: `body {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 0;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    min-height: 100vh;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.container {\n    text-align: center;\n    background: white;\n    padding: 2rem;\n    border-radius: 10px;\n    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);\n}\n\nh1 {\n    color: #333;\n    margin-bottom: 1rem;\n}\n\np {\n    color: #666;\n    margin-bottom: 2rem;\n}\n\nbutton {\n    background: #007bff;\n    color: white;\n    border: none;\n    padding: 12px 24px;\n    border-radius: 5px;\n    cursor: pointer;\n    font-size: 16px;\n    transition: background-color 0.3s;\n}\n\nbutton:hover {\n    background: #0056b3;\n}`,
+          isFolder: false,
+        });
+
+        await storage.createFile({
+          projectId: project.id,
+          name: "script.js",
+          path: "/script.js",
+          content: `let count = 0;\nconst button = document.getElementById('clickBtn');\nconst counter = document.getElementById('counter');\n\nbutton.addEventListener('click', () => {\n    count++;\n    counter.textContent = count;\n    console.log(\`Button clicked \${count} times\`);\n});\n\nconsole.log('Vanilla JavaScript project loaded successfully!');`,
+          isFolder: false,
+        });
+      }
 
       res.json(project);
     } catch (error) {
