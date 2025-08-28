@@ -445,13 +445,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send('<h1>App.js or App.jsx file not found</h1>');
       }
 
-      // Clean JS code - remove imports and export default, fix escaped quotes
+      // Clean JS code - completely fix escaped quotes and prepare for browser
       let jsCode = (appJsFile.content || '')
-        .replace(/import.*from.*['"]/g, '// ')
-        .replace(/export default App;?/g, '')
-        .replace(/""([^"]*)""/g, '"$1"') // Fix double escaped quotes like ""calculator"" to "calculator"
-        .replace(/className=""/g, 'className="')
-        .replace(/""([^"]*)""/g, '"$1"'); // Apply fix again for any remaining cases
+        .split('\n') // Split into lines for better processing
+        .filter(line => {
+          const trimmed = line.trim();
+          return !trimmed.startsWith('import ') && !trimmed.startsWith('export default');
+        }) // Remove import and export lines
+        .join('\n')
+        .replace(/""([^"]*)""/g, '"$1"') // Fix double quotes: ""text"" -> "text"
+        .replace(/alert\(""([^"]*)""(?:\)|;)/g, 'alert("$1")') // Fix alert with double quotes
+        .trim();
 
       // Generate preview HTML with React code
       const previewHtml = `<!DOCTYPE html>
@@ -460,8 +464,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${project.name} - Preview</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     ${appCssFile ? appCssFile.content : ''}
@@ -471,6 +475,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 <body>
   <div id="root"></div>
   <script type="text/babel">
+    const { useState } = React;
+    
     ${jsCode}
     
     const root = ReactDOM.createRoot(document.getElementById('root'));
