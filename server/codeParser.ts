@@ -152,23 +152,19 @@ async function ensureBasicFiles(existingFiles: ParsedCodeFile[], prompt: string,
   const hasCSS = files.some(f => f.name.endsWith('.css'));
   const hasPackageJson = files.some(f => f.name === 'package.json');
   
-  // Create missing main component
+  // Create missing main component with enhanced modular prompt
   if (!hasMainComponent) {
-    const mainContent = await generateCode(`Create a React component for: ${prompt}`, 'javascript');
-    files.push({
-      name: 'App.jsx',
-      path: '/App.jsx',
-      content: cleanCodeContent(mainContent),
-      language: 'javascript'
-    });
+    const mainContent = await generateCode(`Create a modular React application for: ${prompt}. Break it into separate reusable components with proper file structure.`, 'javascript');
+    const extractedFiles = extractComponentsFromCode(mainContent, prompt);
+    files.push(...extractedFiles);
   }
   
   // Create missing CSS
   if (!hasCSS) {
-    const cssContent = await generateCode(`Create CSS styles for: ${prompt}`, 'css');
+    const cssContent = await generateCode(`Create modular CSS styles for: ${prompt}. Create separate CSS files for different components.`, 'css');
     files.push({
-      name: 'App.css',
-      path: '/App.css',
+      name: 'styles/App.css',
+      path: '/styles/App.css',
       content: cleanCodeContent(cssContent),
       language: 'css'
     });
@@ -184,7 +180,8 @@ async function ensureBasicFiles(existingFiles: ParsedCodeFile[], prompt: string,
     });
   }
   
-  return files;
+  // Ensure proper folder structure
+  return ensureProperStructure(files);
 }
 
 /**
@@ -303,6 +300,123 @@ function analyzeProjectStructure(files: ParsedCodeFile[]): ParsedProject['projec
     hasTypeScript: files.some(f => f.name.endsWith('.ts') || f.name.endsWith('.tsx')),
     hasJSON: files.some(f => f.name.endsWith('.json'))
   };
+}
+
+/**
+ * Extract React components from generated code into separate files
+ */
+function extractComponentsFromCode(generatedCode: string, prompt: string): ParsedCodeFile[] {
+  const files: ParsedCodeFile[] = [];
+  
+  // Look for function components in the code
+  const componentRegex = /(?:function|const)\s+(\w+)\s*(?:\([^)]*\)|=\s*\([^)]*\)\s*=>)\s*\{[\s\S]*?\}(?:\s*;)?/g;
+  const components = Array.from(generatedCode.matchAll(componentRegex));
+  
+  // If we found multiple components, extract them
+  if (components.length > 1) {
+    for (const component of components) {
+      const componentName = component[1];
+      const componentCode = component[0];
+      
+      // Skip if this is the main App component or too small
+      if (componentName === 'App' || componentCode.length < 100) continue;
+      
+      // Create imports and exports for the component
+      const fullComponent = `import React from 'react';
+import '../styles/${componentName}.css';
+
+${componentCode}
+
+export default ${componentName};`;
+      
+      files.push({
+        name: `components/${componentName}.jsx`,
+        path: `/components/${componentName}.jsx`,
+        content: fullComponent,
+        language: 'javascript'
+      });
+      
+      // Create corresponding CSS file
+      files.push({
+        name: `styles/${componentName}.css`,
+        path: `/styles/${componentName}.css`,
+        content: `/* Styles for ${componentName} component */\n.${componentName.toLowerCase()} {\n  /* Add your styles here */\n}`,
+        language: 'css'
+      });
+    }
+    
+    // Create main App component that imports the others
+    const componentImports = components
+      .filter(c => c[1] !== 'App' && c[0].length >= 100)
+      .map(c => `import ${c[1]} from './components/${c[1]}';`)
+      .join('\n');
+    
+    const appComponent = `import React from 'react';
+import './styles/App.css';
+${componentImports}
+
+function App() {
+  return (
+    <div className="App">
+      {/* Your main app content here */}
+      <h1>Welcome to your React App</h1>
+      <p>Generated from: ${prompt}</p>
+    </div>
+  );
+}
+
+export default App;`;
+    
+    files.push({
+      name: 'App.jsx',
+      path: '/App.jsx',
+      content: appComponent,
+      language: 'javascript'
+    });
+  } else {
+    // If no components found, create a basic App component
+    files.push({
+      name: 'App.jsx',
+      path: '/App.jsx',
+      content: cleanCodeContent(generatedCode),
+      language: 'javascript'
+    });
+  }
+  
+  return files;
+}
+
+/**
+ * Ensure proper folder structure for the project
+ */
+function ensureProperStructure(files: ParsedCodeFile[]): ParsedCodeFile[] {
+  const structuredFiles: ParsedCodeFile[] = [];
+  
+  for (const file of files) {
+    let newFile = { ...file };
+    
+    // Organize components into components/ folder
+    if (file.name.endsWith('.jsx') && !file.name.includes('App.jsx') && !file.path.includes('/components/')) {
+      newFile.name = `components/${file.name}`;
+      newFile.path = `/components/${file.name}`;
+    }
+    
+    // Organize CSS into styles/ folder
+    if (file.name.endsWith('.css') && !file.path.includes('/styles/')) {
+      newFile.name = `styles/${file.name}`;
+      newFile.path = `/styles/${file.name}`;
+    }
+    
+    // Organize utilities into utils/ folder if any
+    if (file.name.includes('util') || file.name.includes('helper')) {
+      newFile.name = `utils/${file.name}`;
+      newFile.path = `/utils/${file.name}`;
+    }
+    
+    structuredFiles.push(newFile);
+  }
+  
+  return structuredFiles;
 }
 
 /**

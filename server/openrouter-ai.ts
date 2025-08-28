@@ -66,21 +66,47 @@ export async function generateCode(prompt: string, language: string = "javascrip
   try {
     const codePrompt = `Create a complete, functional ${language} React application based on this request: "${prompt}"
 
+IMPORTANT: Generate MODULAR COMPONENTS with proper file structure. Break down the application into multiple separate files:
+
 Requirements:
+- Create SEPARATE components for different UI sections (Header, Footer, Sidebar, etc.)
+- Break complex components into smaller, reusable ones
 - Use modern React with hooks (useState, useEffect, etc.)
 - Make it mobile responsive with clean CSS
-- Include proper imports and exports
+- Include proper imports and exports for each component
+- Create separate CSS files for each component when needed
 - Add interactive functionality where appropriate
 - Use TypeScript interfaces if needed
 - Make it production-ready and well-structured
 - Include error handling where relevant
 
-Return only the complete code without explanations or markdown formatting.`;
+Format your response with clear file separators like:
+=== FILENAME: App.jsx ===
+[Main App component code]
+
+=== FILENAME: components/Header.jsx ===
+[Header component code]
+
+=== FILENAME: components/Footer.jsx ===
+[Footer component code]
+
+=== FILENAME: styles/App.css ===
+[Main app styles]
+
+=== FILENAME: styles/Header.css ===
+[Header component styles]
+
+Return the complete modular code structure without explanations or markdown formatting.`;
     
     return await callOpenRouterAPI(codePrompt);
   } catch (error) {
     console.error('Error generating code with OpenRouter AI:', error);
-    return `import React, { useState } from 'react';
+    return generateFallbackCode(prompt);
+  }
+}
+
+function generateFallbackCode(prompt: string): string {
+  return `import React, { useState } from 'react';
 import './App.css';
 
 function App() {
@@ -106,7 +132,6 @@ function App() {
 }
 
 export default App;`;
-  }
 }
 
 async function generateCSSStyles(prompt: string): Promise<string> {
