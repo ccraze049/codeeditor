@@ -647,7 +647,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Security: Only allow safe commands
       const allowedCommands = [
         'npm', 'node', 'ls', 'pwd', 'cat', 'echo', 'date', 'whoami',
-        'git', 'clear', 'help', 'mkdir', 'touch', 'rm', 'cp', 'mv'
+        'git', 'clear', 'help', 'mkdir', 'touch', 'rm', 'cp', 'mv',
+        'python', 'python3', 'pip', 'pip3', 'javac', 'java', 'gcc', 'g++'
       ];
       
       const commandParts = command.trim().split(' ');
