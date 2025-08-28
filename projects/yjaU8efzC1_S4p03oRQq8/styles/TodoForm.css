@@ -1,0 +1,9 @@
+/* Styles for TodoForm component */
+.todoform-container {
+  padding: 20px;
+}
+
+.todoform-title {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
