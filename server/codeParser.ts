@@ -48,9 +48,10 @@ Format your response with clear file separators like:
 
 Make each file complete and production-ready. Use modern React patterns and responsive CSS.`;
 
+  let generatedCode = '';
   try {
     // Generate code using enhanced prompt
-    const generatedCode = await generateCode(enhancedPrompt, 'javascript');
+    generatedCode = await generateCode(enhancedPrompt, 'javascript');
     
     // Parse the generated code into separate files
     const parsedFiles = parseCodeBlocks(generatedCode, prompt, projectName);
@@ -66,8 +67,8 @@ Make each file complete and production-ready. Use modern React patterns and resp
   } catch (error) {
     console.error('Error parsing AI generated code:', error);
     
-    // Fallback to creating basic files separately
-    return await createFallbackFiles(prompt, projectName);
+    // Fallback to creating basic files separately with better separation
+    return createSeparatedFallbackFiles(prompt, projectName, generatedCode);
   }
 }
 
@@ -495,4 +496,139 @@ function createPackageJson(projectName: string): string {
       ]
     }
   }, null, 2);
+}
+
+/**
+ * Create fallback files with proper content separation
+ */
+function createSeparatedFallbackFiles(prompt: string, projectName: string, generatedCode: string): ParsedProject {
+  console.log('Creating separated fallback files');
+  
+  const files: ParsedCodeFile[] = [];
+  
+  // Separate CSS and JS content
+  const cssRegex = /\.[\w-]+\s*\{[^{}]*\}/g;
+  const cssMatches = generatedCode.match(cssRegex);
+  
+  // Extract CSS content
+  let cssContent = '';
+  if (cssMatches) {
+    cssContent = cssMatches.join('\n\n');
+  } else {
+    // Default CSS for the app
+    cssContent = `.App {
+  text-align: center;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.App-header {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+h1 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 2.5em;
+}
+
+button {
+  background: #3498db;
+  color: white;
+  padding: 15px 30px;
+  border: none;
+  border-radius: 25px;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin: 10px;
+}
+
+button:hover {
+  background: #2980b9;
+}
+
+@media (max-width: 768px) {
+  .App-header {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  h1 {
+    font-size: 2em;
+  }
+}`;
+  }
+  
+  // Create JSX content without CSS
+  let jsxContent = generatedCode.replace(cssRegex, '').trim();
+  
+  // If content doesn't look like React, create a basic component
+  if (!jsxContent.includes('import React') && !jsxContent.includes('function ') && !jsxContent.includes('const ')) {
+    jsxContent = `import React, { useState } from 'react';
+import './styles/App.css';
+
+function App() {
+  const [message, setMessage] = useState('Hello World!');
+  const [count, setCount] = useState(0);
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>{message}</h1>
+        <p>Generated from prompt: "${prompt}"</p>
+        <div className="counter">
+          <button onClick={() => setCount(count - 1)}>-</button>
+          <span>Count: {count}</span>
+          <button onClick={() => setCount(count + 1)}>+</button>
+        </div>
+        <button onClick={() => setMessage('Hello from React!')}>
+          Click me!
+        </button>
+      </header>
+    </div>
+  );
+}
+
+export default App;`;
+  }
+  
+  // Add files
+  files.push({
+    name: 'App.jsx',
+    path: '/App.jsx',
+    content: jsxContent,
+    language: 'javascript'
+  });
+  
+  files.push({
+    name: 'styles/App.css',
+    path: '/styles/App.css',
+    content: cssContent,
+    language: 'css'
+  });
+  
+  // Add package.json
+  files.push({
+    name: 'package.json',
+    path: '/package.json',
+    content: createPackageJson(projectName),
+    language: 'json'
+  });
+  
+  return {
+    files,
+    projectStructure: analyzeProjectStructure(files)
+  };
 }

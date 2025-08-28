@@ -29,6 +29,13 @@ async function callOpenRouterAPI(prompt: string): Promise<string> {
     return res.data.choices[0].message.content;
   } catch (err: any) {
     console.error("OpenRouter AI Error:", err.response?.data || err.message);
+    
+    // Handle rate limiting specifically
+    if (err.response?.status === 429) {
+      console.log("Rate limited by OpenRouter, using fallback generation");
+      throw new Error("Rate limited - using fallback");
+    }
+    
     throw err;
   }
 }
