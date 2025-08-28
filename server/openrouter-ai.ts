@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_KEY = "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";
+const API_KEY = "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";
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
 // Helper function to make OpenRouter API calls
