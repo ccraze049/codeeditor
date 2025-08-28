@@ -192,20 +192,16 @@ async function createFallbackFiles(prompt: string, projectName: string): Promise
   
   const files: ParsedCodeFile[] = [];
   
-  // Generate React component
-  const reactCode = await generateCode(`Create a React component for: ${prompt}`, 'javascript');
-  files.push({
-    name: 'App.jsx',
-    path: '/App.jsx',
-    content: cleanCodeContent(reactCode),
-    language: 'javascript'
-  });
+  // Generate modular React component
+  const reactCode = await generateCode(`Create a modular React application with separate components for: ${prompt}`, 'javascript');
+  const extractedFiles = extractComponentsFromCode(reactCode, prompt);
+  files.push(...extractedFiles);
   
-  // Generate CSS
-  const cssCode = await generateCode(`Create CSS styles for: ${prompt}`, 'css');
+  // Generate CSS with proper structure
+  const cssCode = await generateCode(`Create modern CSS styles for: ${prompt}`, 'css');
   files.push({
-    name: 'App.css',
-    path: '/App.css',
+    name: 'styles/App.css',
+    path: '/styles/App.css',
     content: cleanCodeContent(cssCode),
     language: 'css'
   });
@@ -219,7 +215,7 @@ async function createFallbackFiles(prompt: string, projectName: string): Promise
   });
   
   return {
-    files,
+    files: ensureProperStructure(files),
     projectStructure: analyzeProjectStructure(files)
   };
 }
@@ -308,20 +304,29 @@ function analyzeProjectStructure(files: ParsedCodeFile[]): ParsedProject['projec
 function extractComponentsFromCode(generatedCode: string, prompt: string): ParsedCodeFile[] {
   const files: ParsedCodeFile[] = [];
   
-  // Look for function components in the code
-  const componentRegex = /(?:function|const)\s+(\w+)\s*(?:\([^)]*\)|=\s*\([^)]*\)\s*=>)\s*\{[\s\S]*?\}(?:\s*;)?/g;
-  const components = Array.from(generatedCode.matchAll(componentRegex));
+  // Fix common import path issues in the generated code
+  let cleanedCode = generatedCode
+    .replace(/import\s+['"]style\//g, "import './styles/")
+    .replace(/import\s+['"]style/g, "import './styles")
+    .replace(/import\s+['"]components\//g, "import './components/")
+    .replace(/import\s+['"]\.\.?\/style/g, "import './styles")
+    .replace(/from\s+['"]style/g, "from './styles")
+    .replace(/from\s+['"]components\//g, "from './components/");
   
-  // If we found multiple components, extract them
-  if (components.length > 1) {
+  // Look for function components with better regex
+  const componentRegex = /(?:function\s+(\w+)\s*\([^)]*\)\s*\{[\s\S]*?\n\}|const\s+(\w+)\s*=\s*\([^)]*\)\s*=>\s*\{[\s\S]*?\n\})/g;
+  const components = Array.from(cleanedCode.matchAll(componentRegex));
+  
+  // Extract individual components if found
+  if (components.length > 0) {
     for (const component of components) {
-      const componentName = component[1];
+      const componentName = component[1] || component[2];
       const componentCode = component[0];
       
       // Skip if this is the main App component or too small
-      if (componentName === 'App' || componentCode.length < 100) continue;
+      if (componentName === 'App' || componentCode.length < 50) continue;
       
-      // Create imports and exports for the component
+      // Create full component with proper imports
       const fullComponent = `import React from 'react';
 import '../styles/${componentName}.css';
 
@@ -336,54 +341,91 @@ export default ${componentName};`;
         language: 'javascript'
       });
       
-      // Create corresponding CSS file
+      // Create corresponding CSS file with proper styles
       files.push({
         name: `styles/${componentName}.css`,
         path: `/styles/${componentName}.css`,
-        content: `/* Styles for ${componentName} component */\n.${componentName.toLowerCase()} {\n  /* Add your styles here */\n}`,
+        content: `/* Styles for ${componentName} component */\n.${componentName.toLowerCase()}-container {\n  padding: 20px;\n}\n\n.${componentName.toLowerCase()}-title {\n  font-size: 1.5rem;\n  margin-bottom: 10px;\n}`,
         language: 'css'
       });
     }
-    
-    // Create main App component that imports the others
-    const componentImports = components
-      .filter(c => c[1] !== 'App' && c[0].length >= 100)
-      .map(c => `import ${c[1]} from './components/${c[1]}';`)
-      .join('\n');
-    
-    const appComponent = `import React from 'react';
+  }
+  
+  // Always create main App component with fixed imports
+  const componentImports = components
+    .filter(c => (c[1] || c[2]) !== 'App' && c[0].length >= 50)
+    .map(c => `import ${c[1] || c[2]} from './components/${c[1] || c[2]}';`)
+    .join('\n');
+  
+  const hasMainApp = cleanedCode.includes('function App') || cleanedCode.includes('const App');
+  
+  let appComponent;
+  if (hasMainApp && componentImports) {
+    // Extract main App component and add imports
+    const appMatch = cleanedCode.match(/(function\s+App\s*\([^)]*\)\s*\{[\s\S]*?\n\}|const\s+App\s*=\s*\([^)]*\)\s*=>\s*\{[\s\S]*?\n\})/)?.[0];
+    appComponent = `import React from 'react';
 import './styles/App.css';
 ${componentImports}
 
-function App() {
+${appMatch || `function App() {
   return (
     <div className="App">
-      {/* Your main app content here */}
       <h1>Welcome to your React App</h1>
       <p>Generated from: ${prompt}</p>
+    </div>
+  );
+}`}
+
+export default App;`;
+  } else {
+    // Use cleaned code or create basic component
+    appComponent = cleanedCode.includes('function') || cleanedCode.includes('const') 
+      ? `import React from 'react';
+import './styles/App.css';
+
+${cleanedCode}
+
+export default App;`
+      : generateBasicAppComponent(prompt);
+  }
+  
+  files.push({
+    name: 'App.jsx',
+    path: '/App.jsx',
+    content: appComponent,
+    language: 'javascript'
+  });
+  
+  return files;
+}
+
+function generateBasicAppComponent(prompt: string): string {
+  return `import React, { useState } from 'react';
+import './styles/App.css';
+
+function App() {
+  const [message, setMessage] = useState('Hello World!');
+  const [count, setCount] = useState(0);
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>{message}</h1>
+        <p>Generated from: ${prompt}</p>
+        <div className="counter">
+          <button onClick={() => setCount(count - 1)}>-</button>
+          <span>Count: {count}</span>
+          <button onClick={() => setCount(count + 1)}>+</button>
+        </div>
+        <button onClick={() => setMessage('Hello from React!')}>
+          Click me!
+        </button>
+      </header>
     </div>
   );
 }
 
 export default App;`;
-    
-    files.push({
-      name: 'App.jsx',
-      path: '/App.jsx',
-      content: appComponent,
-      language: 'javascript'
-    });
-  } else {
-    // If no components found, create a basic App component
-    files.push({
-      name: 'App.jsx',
-      path: '/App.jsx',
-      content: cleanCodeContent(generatedCode),
-      language: 'javascript'
-    });
-  }
-  
-  return files;
 }
 
 /**

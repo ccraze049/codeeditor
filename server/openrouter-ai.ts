@@ -64,39 +64,64 @@ export async function generateCode(prompt: string, language: string = "javascrip
   }
   
   try {
-    const codePrompt = `Create a complete, functional ${language} React application based on this request: "${prompt}"
+    const codePrompt = `Create a complete, functional ${language} React application for: "${prompt}"
 
-IMPORTANT: Generate MODULAR COMPONENTS with proper file structure. Break down the application into multiple separate files:
+IMPORTANT REQUIREMENTS:
+1. Create MULTIPLE React components (at least 3-4 components)
+2. Break down into: Header, Main Content, Footer, and Feature components
+3. Use CORRECT import paths: './styles/ComponentName.css' for CSS
+4. Each component should have its own CSS file
+5. Use modern React hooks (useState, useEffect)
+6. Make it mobile responsive
+7. Include proper imports and exports
 
-Requirements:
-- Create SEPARATE components for different UI sections (Header, Footer, Sidebar, etc.)
-- Break complex components into smaller, reusable ones
-- Use modern React with hooks (useState, useEffect, etc.)
-- Make it mobile responsive with clean CSS
-- Include proper imports and exports for each component
-- Create separate CSS files for each component when needed
-- Add interactive functionality where appropriate
-- Use TypeScript interfaces if needed
-- Make it production-ready and well-structured
-- Include error handling where relevant
+Component Structure Example:
+- Header component (navigation, title)
+- Main content component (core functionality) 
+- Footer component (footer info)
+- Feature components (buttons, forms, lists, etc.)
 
-Format your response with clear file separators like:
+Format with file separators:
 === FILENAME: App.jsx ===
-[Main App component code]
+import React from 'react';
+import './styles/App.css';
+import Header from './components/Header';
+import MainContent from './components/MainContent';
+import Footer from './components/Footer';
+
+function App() {
+  return (
+    <div className="App">
+      <Header />
+      <MainContent />
+      <Footer />
+    </div>
+  );
+}
+
+export default App;
 
 === FILENAME: components/Header.jsx ===
-[Header component code]
+import React from 'react';
+import '../styles/Header.css';
 
-=== FILENAME: components/Footer.jsx ===
-[Footer component code]
+function Header() {
+  return (
+    <header className="header">
+      <h1>App Title</h1>
+    </header>
+  );
+}
+
+export default Header;
 
 === FILENAME: styles/App.css ===
-[Main app styles]
+.App { /* styles */ }
 
 === FILENAME: styles/Header.css ===
-[Header component styles]
+.header { /* styles */ }
 
-Return the complete modular code structure without explanations or markdown formatting.`;
+Return complete modular code with proper imports/exports.`;
     
     return await callOpenRouterAPI(codePrompt);
   } catch (error) {
@@ -107,7 +132,7 @@ Return the complete modular code structure without explanations or markdown form
 
 function generateFallbackCode(prompt: string): string {
   return `import React, { useState } from 'react';
-import './App.css';
+import './styles/App.css';
 
 function App() {
   const [message, setMessage] = useState('Hello World!');
