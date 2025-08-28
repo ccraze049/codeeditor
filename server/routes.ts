@@ -652,11 +652,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       
       const commandParts = command.trim().split(' ');
-      const baseCommand = commandParts[0];
+      const baseCommand = commandParts[0].toLowerCase(); // Make case-insensitive
       
       if (!allowedCommands.includes(baseCommand)) {
         return res.json({ 
-          output: `Command '${baseCommand}' is not allowed for security reasons.\nAllowed commands: ${allowedCommands.join(', ')}`,
+          output: `Command '${commandParts[0]}' is not allowed for security reasons.\nAllowed commands: ${allowedCommands.join(', ')}`,
           type: 'error'
         });
       }
@@ -673,7 +673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Determine working directory
+      // Determine working directory and sync files
       let workingDir = process.cwd();
       if (projectId) {
         const projectPath = path.join(process.cwd(), 'projects', projectId);
@@ -684,6 +684,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Project directory doesn't exist, create it
           await fs.mkdir(projectPath, { recursive: true });
           workingDir = projectPath;
+        }
+
+        // Sync database files to disk before executing commands
+        try {
+          console.log(`Syncing project files to disk before command execution`);
+          const projectFiles = await storage.getProjectFiles(projectId);
+          
+          for (const file of projectFiles) {
+            if (!file.isFolder && file.content !== null) {
+              const filePath = path.join(workingDir, file.path);
+              const fileDir = path.dirname(filePath);
+              
+              // Ensure directory exists
+              await fs.mkdir(fileDir, { recursive: true });
+              
+              // Write file content to disk
+              await fs.writeFile(filePath, file.content, 'utf8');
+            }
+          }
+          console.log(`Synced ${projectFiles.filter(f => !f.isFolder).length} files to disk`);
+        } catch (syncError) {
+          console.warn(`Failed to sync files to disk:`, syncError);
         }
       }
 
