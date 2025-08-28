@@ -674,15 +674,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allowedCommands = [
         'npm', 'node', 'ls', 'pwd', 'cat', 'echo', 'date', 'whoami',
         'git', 'clear', 'help', 'mkdir', 'touch', 'rm', 'cp', 'mv',
-        'python', 'python3', 'pip', 'pip3', 'javac', 'java', 'gcc', 'g++'
+        'python', 'python3', 'pip', 'pip3', 'pipenv', 'poetry', 'venv',
+        'virtualenv', 'pytest', 'flake8', 'black', 'isort', 'mypy',
+        'django-admin', 'flask', 'gunicorn', 'uvicorn', 'celery',
+        'jupyter', 'ipython', 'conda', 'mamba', 'pdm', 'setuptools',
+        'wheel', 'twine', 'pydoc', 'python-config', 'pyvenv',
+        'javac', 'java', 'gcc', 'g++', 'make', 'cmake', 'cargo', 'rustc'
       ];
       
       const commandParts = command.trim().split(' ');
       const baseCommand = commandParts[0].toLowerCase(); // Make case-insensitive
       
-      if (!allowedCommands.includes(baseCommand)) {
+      // Special handling for Python module commands (python3 -m pip, python3 -m venv, etc.)
+      const isPythonModuleCommand = baseCommand === 'python3' && commandParts[1] === '-m';
+      
+      if (!allowedCommands.includes(baseCommand) && !isPythonModuleCommand) {
         return res.json({ 
-          output: `Command '${commandParts[0]}' is not allowed for security reasons.\nAllowed commands: ${allowedCommands.join(', ')}`,
+          output: `Command '${commandParts[0]}' is not allowed for security reasons.\nAllowed commands: ${allowedCommands.join(', ')}\nPython modules: python3 -m pip, python3 -m venv, python3 -m pytest, etc.`,
           type: 'error'
         });
       }
