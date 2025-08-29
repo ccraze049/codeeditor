@@ -141,8 +141,18 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
   };
 
   const buildFileTree = (parentId: string | null = null, level: number = 0): JSX.Element[] => {
-    const items = files
-      .filter(file => file.parentId === parentId)
+    // Filter out duplicate files by path
+    const uniqueFiles = new Map();
+    files.forEach(file => {
+      if (file.parentId === parentId) {
+        const key = `${file.path}-${file.name}`;
+        if (!uniqueFiles.has(key) || file.id < uniqueFiles.get(key).id) {
+          uniqueFiles.set(key, file);
+        }
+      }
+    });
+    
+    const items = Array.from(uniqueFiles.values())
       .sort((a, b) => {
         if (a.isFolder !== b.isFolder) {
           return a.isFolder ? -1 : 1;
