@@ -528,12 +528,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create or update files
+      // Create or update files (avoiding duplicates)
       const createdFiles = [];
+      const existingFiles = await storage.getProjectFiles(projectId);
+      const processedPaths = new Set<string>();
+      
       for (const file of parsedProject.files) {
         try {
-          // Check if file already exists
-          const existingFiles = await storage.getProjectFiles(projectId);
+          // Skip if we already processed this path
+          if (processedPaths.has(file.path)) {
+            console.log(`Skipping duplicate file: ${file.path}`);
+            continue;
+          }
+          processedPaths.add(file.path);
+          
           const existingFile = existingFiles.find(f => f.path === file.path);
           
           if (existingFile) {
@@ -704,16 +712,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clean the main App component
       let jsCode = cleanComponent(appJsFile.content || '');
       
-      // Clean all additional components
-      let additionalComponents = componentFiles.map(file => cleanComponent(file.content || '')).join('\n\n');
+      // Clean all additional components and avoid duplicates
+      const uniqueComponents = new Map();
+      componentFiles.forEach(file => {
+        const componentName = file.name.replace(/\.(jsx?|tsx?)$/, '');
+        if (!uniqueComponents.has(componentName)) {
+          uniqueComponents.set(componentName, cleanComponent(file.content || ''));
+        }
+      });
+      let additionalComponents = Array.from(uniqueComponents.values()).join('\n\n');
 
-      // Generate preview HTML with React code
+      // Generate preview HTML with React code and better error handling
       const previewHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${project.name} - Preview</title>
+  <title>${project.name} - Live Preview</title>
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    .preview-error { 
+      color: #e74c3c; 
+      padding: 20px; 
+      background: #fdf2f2; 
+      border: 1px solid #fecaca; 
+      border-radius: 8px; 
+      margin: 20px; 
+    }
+    .preview-loading { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      height: 100vh; 
+      color: #666; 
+    }
+  </style>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>

@@ -77,11 +77,13 @@ export default function Editor() {
     enabled: !!projectId,
   });
 
-  // Query for files
+  // Query for files with performance optimizations
   const { data: files, isLoading: filesLoading } = useQuery<File[]>({
     queryKey: ["/api/projects", projectId, "files"],
     retry: false,
     enabled: !!projectId && !isSharedView,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const project = isSharedView ? projectData?.project : projectData;

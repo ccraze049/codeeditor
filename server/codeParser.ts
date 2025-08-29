@@ -304,6 +304,7 @@ function analyzeProjectStructure(files: ParsedCodeFile[]): ParsedProject['projec
  */
 function extractComponentsFromCode(generatedCode: string, prompt: string): ParsedCodeFile[] {
   const files: ParsedCodeFile[] = [];
+  const createdComponents = new Set<string>(); // Track created components to avoid duplicates
   
   // Fix common import path issues in the generated code
   let cleanedCode = generatedCode
@@ -324,8 +325,10 @@ function extractComponentsFromCode(generatedCode: string, prompt: string): Parse
       const componentName = component[1] || component[2];
       const componentCode = component[0];
       
-      // Skip if this is the main App component or too small
-      if (componentName === 'App' || componentCode.length < 50) continue;
+      // Skip if this is the main App component, too small, or already created
+      if (componentName === 'App' || componentCode.length < 50 || createdComponents.has(componentName)) continue;
+      
+      createdComponents.add(componentName); // Mark as created
       
       // Create full component with proper imports
       const fullComponent = `import React from 'react';

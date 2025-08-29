@@ -28,7 +28,7 @@ interface FileTreeProps {
 }
 
 export default function FileTree({ files, onFileClick, activeFileId, isReadOnly }: FileTreeProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['/', '/components', '/styles']));
   const [newItemParent, setNewItemParent] = useState<string | null>(null);
   const [newItemType, setNewItemType] = useState<'file' | 'folder'>('file');
   const [newItemName, setNewItemName] = useState("");
