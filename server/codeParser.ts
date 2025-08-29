@@ -25,50 +25,70 @@ export interface ParsedProject {
 export async function parseAndCreateProjectFiles(prompt: string, projectName: string): Promise<ParsedProject> {
   console.log('Parsing AI generated code for multi-file structure:', prompt);
   
-  // Enhanced prompt for better multi-file generation
-  const enhancedPrompt = `Create a complete web application for: "${prompt}"
+  // Optimized single-call prompt for faster generation
+  const optimizedPrompt = `Create a complete React application for: "${prompt}"
 
-Generate separate code blocks for each file type needed:
+RETURN ONLY the code in this exact format (no explanations):
 
-1. **React Component (.jsx)**: Main component with state management and functionality
-2. **CSS Styles (.css)**: Complete styling with responsive design
-3. **Additional Components**: If needed, create separate components
-4. **Package.json**: Dependencies and scripts
-5. **HTML Template**: If needed for standalone HTML version
-
-Format your response with clear file separators like:
 === FILENAME: App.jsx ===
-[React component code here]
+import React, { useState } from 'react';
+import './styles/App.css';
 
-=== FILENAME: App.css ===
-[CSS styles here]
+function App() {
+  const [state, setState] = useState('');
+  
+  return (
+    <div className="app">
+      <h1>${projectName || 'My App'}</h1>
+      {/* Your app content here */}
+    </div>
+  );
+}
+
+export default App;
+
+=== FILENAME: styles/App.css ===
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
 === FILENAME: package.json ===
-[Package.json content here]
+{
+  "name": "${projectName?.toLowerCase().replace(/\s+/g, '-') || 'my-app'}",
+  "version": "1.0.0",
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
 
-Make each file complete and production-ready. Use modern React patterns and responsive CSS.`;
+Make it functional and complete for: ${prompt}`;
 
   let generatedCode = '';
   try {
-    // Generate code using enhanced prompt
-    generatedCode = await generateCode(enhancedPrompt, 'javascript');
+    // Single optimized API call
+    generatedCode = await generateCode(optimizedPrompt, 'javascript');
     
     // Parse the generated code into separate files
     const parsedFiles = parseCodeBlocks(generatedCode, prompt, projectName);
     
-    // Ensure we have at least basic files
-    const ensuredFiles = await ensureBasicFiles(parsedFiles, prompt, projectName);
+    // Quick basic file check without additional API calls
+    const finalFiles = parsedFiles.length > 0 ? parsedFiles : (await createFallbackFiles(prompt, projectName)).files;
     
     return {
-      files: ensuredFiles,
-      projectStructure: analyzeProjectStructure(ensuredFiles)
+      files: finalFiles,
+      projectStructure: analyzeProjectStructure(finalFiles)
     };
     
   } catch (error) {
     console.error('Error parsing AI generated code:', error);
     
-    // Fallback to creating basic files separately with better separation
-    return createSeparatedFallbackFiles(prompt, projectName, generatedCode);
+    // Fast fallback without additional API calls
+    const fallback = await createFallbackFiles(prompt, projectName);
+    return fallback;
   }
 }
 
