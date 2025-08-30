@@ -1,8 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { mongoStorage } from "./mongoStorage";
-// Legacy storage import kept for reference
-// import { storage } from "./storage";
 import { setupSimpleAuth, isAuthenticated } from "./simpleAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
 import { generateCode, explainCode, debugCode, chatWithAI } from "./gemini-ai.js";
