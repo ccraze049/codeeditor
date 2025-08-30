@@ -123,28 +123,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create initial files based on template
       if (projectData.template === 'react') {
-        // React template
+        // Create public folder
+        await mongoStorage.createFile({
+          projectId: project.id,
+          name: "public",
+          path: "/public",
+          content: null,
+          isFolder: true,
+        });
+
+        // Create src folder
+        await mongoStorage.createFile({
+          projectId: project.id,
+          name: "src",
+          path: "/src",
+          content: null,
+          isFolder: true,
+        });
+
+        // Create public/index.html
+        await mongoStorage.createFile({
+          projectId: project.id,
+          name: "index.html",
+          path: "/public/index.html",
+          content: `<!DOCTYPE html>\n<html lang="en">\n  <head>\n    <meta charset="utf-8" />\n    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />\n    <meta name="viewport" content="width=device-width, initial-scale=1" />\n    <meta name="theme-color" content="#000000" />\n    <meta name="description" content="Web site created using create-react-app" />\n    <title>React App</title>\n  </head>\n  <body>\n    <noscript>You need to enable JavaScript to run this app.</noscript>\n    <div id="root"></div>\n  </body>\n</html>`,
+          isFolder: false,
+        });
+
+        // Create src/index.js
+        await mongoStorage.createFile({
+          projectId: project.id,
+          name: "index.js",
+          path: "/src/index.js",
+          content: `import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport './index.css';\nimport App from './App';\n\nconst root = ReactDOM.createRoot(document.getElementById('root'));\nroot.render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>\n);`,
+          isFolder: false,
+        });
+
+        // Create src/index.css
+        await mongoStorage.createFile({
+          projectId: project.id,
+          name: "index.css",
+          path: "/src/index.css",
+          content: `body {\n  margin: 0;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',\n    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',\n    sans-serif;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\ncode {\n  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',\n    monospace;\n}`,
+          isFolder: false,
+        });
+
+        // Create src/App.js
         await mongoStorage.createFile({
           projectId: project.id,
           name: "App.js",
-          path: "/App.js",
-          content: `import React, { useState } from 'react';\nimport './App.css';\n\nfunction App() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div className="App">\n      <h1>Hello World!</h1>\n      <button onClick={() => setCount(count + 1)}>\n        Count: {count}\n      </button>\n    </div>\n  );\n}\n\nexport default App;`,
+          path: "/src/App.js",
+          content: `import React, { useState } from 'react';\nimport './App.css';\n\nfunction App() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div className="App">\n      <header className="App-header">\n        <h1>Hello World!</h1>\n        <p>Welcome to your React app!</p>\n        <button onClick={() => setCount(count + 1)}>\n          Count: {count}\n        </button>\n      </header>\n    </div>\n  );\n}\n\nexport default App;`,
           isFolder: false,
         });
 
+        // Create src/App.css
         await mongoStorage.createFile({
           projectId: project.id,
           name: "App.css",
-          path: "/App.css",
-          content: `.App {\n  text-align: center;\n  padding: 20px;\n}\n\nbutton {\n  padding: 10px 20px;\n  margin: 10px;\n  background: #007bff;\n  color: white;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background: #0056b3;\n}`,
+          path: "/src/App.css",
+          content: `.App {\n  text-align: center;\n}\n\n.App-header {\n  background-color: #282c34;\n  padding: 20px;\n  color: white;\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  font-size: calc(10px + 2vmin);\n}\n\nbutton {\n  padding: 10px 20px;\n  margin: 10px;\n  background: #61dafb;\n  color: #282c34;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n  font-size: 16px;\n}\n\nbutton:hover {\n  background: #21c0e8;\n}`,
           isFolder: false,
         });
 
+        // Create package.json
         await mongoStorage.createFile({
           projectId: project.id,
           name: "package.json",
           path: "/package.json",
-          content: `{\n  "name": "${project.name.toLowerCase().replace(/\\s+/g, '-')}",\n  "version": "1.0.0",\n  "private": true,\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0",\n    "react-scripts": "5.0.1"\n  },\n  "scripts": {\n    "start": "react-scripts start",\n    "build": "react-scripts build",\n    "test": "react-scripts test",\n    "eject": "react-scripts eject"\n  }\n}`,
+          content: `{\n  "name": "${project.name.toLowerCase().replace(/\\s+/g, '-')}",\n  "version": "1.0.0",\n  "private": true,\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0",\n    "react-scripts": "5.0.1"\n  },\n  "scripts": {\n    "start": "react-scripts start",\n    "build": "react-scripts build",\n    "test": "react-scripts test",\n    "eject": "react-scripts eject"\n  },\n  "eslintConfig": {\n    "extends": [\n      "react-app",\n      "react-app/jest"\n    ]\n  },\n  "browserslist": {\n    "production": [\n      ">0.2%",\n      "not dead",\n      "not op_mini all"\n    ],\n    "development": [\n      "last 1 chrome version",\n      "last 1 firefox version",\n      "last 1 safari version"\n    ]\n  }\n}`,
           isFolder: false,
         });
       } else if (projectData.template === 'node') {
@@ -877,10 +924,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Handle React projects
-      // Find App.js/App.jsx files (in root or any folder)
+      // Find App.js/App.jsx files (in root, src folder, or any folder)
       const appJsFile = files.find((f: any) => 
         f.name === 'App.js' || f.name === 'App.jsx' || 
-        f.path.endsWith('/App.js') || f.path.endsWith('/App.jsx')
+        f.path.endsWith('/App.js') || f.path.endsWith('/App.jsx') ||
+        f.path.endsWith('/src/App.js') || f.path.endsWith('/src/App.jsx')
       );
       
       // Find CSS files from styles folder and root
