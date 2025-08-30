@@ -1216,15 +1216,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let command = '';
       let description = '';
       
+      // Check if dependencies are installed for Node.js projects
+      const hasPackageJson = files.some(f => f.name === 'package.json');
+      const hasNodeModules = files.some(f => f.name === 'node_modules' && f.isFolder);
+      
       switch (language) {
         case 'python':
           command = 'python main.py';
           description = 'Running Python application';
           break;
         case 'react':
+          if (hasPackageJson && !hasNodeModules) {
+            command = 'npm install && npm start';
+            description = 'Installing dependencies and starting React development server';
+          } else {
+            command = 'npm start';
+            description = 'Starting React development server';
+          }
+          break;
         case 'javascript':
-          command = 'npm start';
-          description = 'Starting React development server';
+          if (hasPackageJson && !hasNodeModules) {
+            command = 'npm install && npm start';
+            description = 'Installing dependencies and starting Node.js application';
+          } else {
+            command = 'npm start';
+            description = 'Starting Node.js application';
+          }
           break;
         case 'html':
           return res.json({
