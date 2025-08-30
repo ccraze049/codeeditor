@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,14 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { File as FileType } from "@shared/schema";
 
+interface TreeNode {
+  id: string;
+  name: string;
+  isFolder: boolean;
+  children: TreeNode[];
+  file: FileType;
+}
+
 interface FileTreeProps {
   files: FileType[];
   onFileClick: (fileId: string) => void;
@@ -34,6 +42,59 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
   const [newItemName, setNewItemName] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Convert flat file list to tree structure
+  const fileTree = useMemo(() => {
+    const buildTree = (): TreeNode[] => {
+      // Group files by path structure
+      const pathMap = new Map<string, TreeNode>();
+      
+      // First, create all nodes
+      files.forEach(file => {
+        pathMap.set(file.id, {
+          id: file.id,
+          name: file.name,
+          isFolder: file.isFolder,
+          children: [],
+          file: file
+        });
+      });
+
+      // Build the tree structure
+      const rootNodes: TreeNode[] = [];
+      
+      files.forEach(file => {
+        const node = pathMap.get(file.id)!;
+        
+        if (!file.parentId || !pathMap.has(file.parentId)) {
+          // Root level file/folder
+          rootNodes.push(node);
+        } else {
+          // Child file/folder
+          const parent = pathMap.get(file.parentId)!;
+          parent.children.push(node);
+        }
+      });
+
+      // Sort function
+      const sortNodes = (nodes: TreeNode[]): TreeNode[] => {
+        return nodes.sort((a, b) => {
+          // Folders first, then files
+          if (a.isFolder !== b.isFolder) {
+            return a.isFolder ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        }).map(node => ({
+          ...node,
+          children: sortNodes(node.children)
+        }));
+      };
+
+      return sortNodes(rootNodes);
+    };
+
+    return buildTree();
+  }, [files]);
 
   const createFileMutation = useMutation({
     mutationFn: async (data: { name: string; path: string; isFolder: boolean; parentId?: string }) => {
@@ -140,180 +201,88 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
     }
   };
 
-  const buildFileTree = (parentId: string | null = null, level: number = 0): JSX.Element[] => {
-    // Debug: Log the parent-child relationships
-    if (level === 0) {
-      console.log('Building file tree. All files:', files.map(f => ({ 
-        id: f.id.substring(0,8), 
-        name: f.name, 
-        parentId: f.parentId?.substring(0,8) || 'null',
-        isFolder: f.isFolder 
-      })));
-    }
+  // Render a tree node recursively
+  const renderTreeNode = (node: TreeNode, level: number = 0): JSX.Element => {
+    const isExpanded = expandedFolders.has(node.id);
+    const isActive = activeFileId === node.id;
 
-    // Get all files that belong to this parent
-    const childFiles = files.filter(file => {
-      // For root level (parentId is null), show files with no parentId or parentId that doesn't exist in files
-      if (parentId === null) {
-        return !file.parentId || !files.some(f => f.id === file.parentId);
-      }
-      // For other levels, show files whose parentId matches the current parentId
-      return file.parentId === parentId;
-    });
-
-    console.log(`Level ${level}, parentId: ${parentId?.substring(0,8) || 'null'}, found ${childFiles.length} children:`, 
-      childFiles.map(f => f.name));
-
-    // Remove duplicates and sort
-    const uniqueFiles = new Map();
-    childFiles.forEach(file => {
-      const key = `${file.path}-${file.name}`;
-      if (!uniqueFiles.has(key) || file.id < uniqueFiles.get(key).id) {
-        uniqueFiles.set(key, file);
-      }
-    });
-    
-    const items = Array.from(uniqueFiles.values())
-      .sort((a, b) => {
-        if (a.isFolder !== b.isFolder) {
-          return a.isFolder ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      });
-
-    const elements: JSX.Element[] = [];
-
-    items.forEach((file) => {
-      const isExpanded = expandedFolders.has(file.id);
-      const isActive = activeFileId === file.id;
-
-      elements.push(
-        <div key={file.id} className="select-none">
-          <div
-            className={`flex items-center hover:bg-ide-bg-tertiary px-2 py-1 rounded cursor-pointer group ${
-              isActive ? 'bg-ide-bg-tertiary' : ''
-            }`}
-            style={{ paddingLeft: `${8 + level * 16}px` }}
-            onClick={() => {
-              if (file.isFolder) {
-                toggleFolder(file.id);
-              } else {
-                onFileClick(file.id);
-              }
-            }}
-            data-testid={`file-${file.name}`}
-          >
-            {file.isFolder && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-0 h-4 w-4 mr-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFolder(file.id);
-                }}
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-3 w-3" />
-                ) : (
-                  <ChevronRight className="h-3 w-3" />
-                )}
-              </Button>
-            )}
-            
-            {!file.isFolder && <span className="w-4 mr-1" />}
-            
-            {getFileIcon(file)}
-            
-            <span className="text-sm ml-2 flex-1 truncate">{file.name}</span>
-            
-            {file.content !== undefined && file.content !== files.find(f => f.id === file.id)?.content && (
-              <div className="w-2 h-2 bg-ide-warning rounded-full ml-2" title="Unsaved changes" />
-            )}
-
-            {!isReadOnly && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-0 h-4 w-4 ml-1 opacity-0 group-hover:opacity-100"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-ide-bg-secondary border-ide-border">
-                  <DropdownMenuItem
-                    onClick={() => deleteFileMutation.mutate(file.id)}
-                    className="text-ide-error hover:bg-ide-bg-tertiary"
-                  >
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-
-          {file.isFolder && isExpanded && (
-            <div className="folder-children">
-              {buildFileTree(file.id, level + 1)}
-            </div>
-          )}
-        </div>
-      );
-    });
-
-    // Add new file/folder input if this is the active parent
-    if (newItemParent === parentId) {
-      elements.push(
+    return (
+      <div key={node.id} className="select-none">
         <div
-          key="new-item"
-          className="flex items-center px-2 py-1"
+          className={`flex items-center hover:bg-ide-bg-tertiary px-2 py-1 rounded cursor-pointer group ${
+            isActive ? 'bg-ide-bg-tertiary' : ''
+          }`}
           style={{ paddingLeft: `${8 + level * 16}px` }}
+          onClick={() => {
+            if (node.isFolder) {
+              toggleFolder(node.id);
+            } else {
+              onFileClick(node.id);
+            }
+          }}
+          data-testid={`file-${node.name}`}
         >
-          <span className="w-4 mr-1" />
-          {newItemType === 'folder' ? (
-            <Folder className="h-4 w-4 text-ide-warning mr-2" />
-          ) : (
-            <File className="h-4 w-4 text-ide-text-secondary mr-2" />
+          {node.isFolder && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-0 h-4 w-4 mr-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFolder(node.id);
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </Button>
           )}
-          <Input
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && newItemName.trim()) {
-                const parentPath = parentId ? 
-                  files.find(f => f.id === parentId)?.path || "/" : "/";
-                const fullPath = parentPath === "/" ? 
-                  `/${newItemName}` : `${parentPath}/${newItemName}`;
-                
-                createFileMutation.mutate({
-                  name: newItemName,
-                  path: fullPath,
-                  isFolder: newItemType === 'folder',
-                  parentId: parentId || undefined,
-                });
-              } else if (e.key === 'Escape') {
-                setNewItemParent(null);
-                setNewItemName("");
-              }
-            }}
-            onBlur={() => {
-              setNewItemParent(null);
-              setNewItemName("");
-            }}
-            className="h-6 text-sm bg-ide-bg-tertiary border-ide-border"
-            placeholder={`${newItemType === 'folder' ? 'Folder' : 'File'} name...`}
-            autoFocus
-            data-testid="input-new-file-name"
-          />
-        </div>
-      );
-    }
+          
+          {!node.isFolder && <span className="w-4 mr-1" />}
+          
+          {getFileIcon(node.file)}
+          
+          <span className="text-sm ml-2 flex-1 truncate">{node.name}</span>
+          
+          {node.file.content !== undefined && node.file.content !== files.find(f => f.id === node.id)?.content && (
+            <div className="w-2 h-2 bg-ide-warning rounded-full ml-2" title="Unsaved changes" />
+          )}
 
-    return elements;
+          {!isReadOnly && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-4 w-4 ml-1 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-ide-bg-secondary border-ide-border">
+                <DropdownMenuItem
+                  onClick={() => deleteFileMutation.mutate(node.id)}
+                  className="text-ide-error hover:bg-ide-bg-tertiary"
+                >
+                  <Trash2 className="h-3 w-3 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {/* CRITICAL: Only render children if folder is expanded */}
+        {node.isFolder && isExpanded && node.children.length > 0 && (
+          <div className="folder-children">
+            {node.children.map(child => renderTreeNode(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -357,7 +326,7 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
 
       {/* File tree */}
       <div className="space-y-1">
-        {buildFileTree()}
+        {fileTree.map(node => renderTreeNode(node))}
       </div>
 
       {files.length === 0 && (
