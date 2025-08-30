@@ -4,6 +4,7 @@ import { useRoute } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest } from "@/lib/queryClient";
 import Monaco from "../components/Monaco";
 import FileTree from "../components/FileTree";
 import AIAssistant from "../components/AIAssistant";

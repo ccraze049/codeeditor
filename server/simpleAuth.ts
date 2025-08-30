@@ -2,16 +2,22 @@
 import { mongoStorage } from "./mongoStorage";
 import { nanoid } from "nanoid";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import type { Express, RequestHandler } from "express";
 
-// Session configuration
+// Session configuration with MongoDB store
 export function getSession() {
   const sessionTtl = 30 * 24 * 60 * 60 * 1000; // 30 days
   
   return session({
     secret: process.env.SESSION_SECRET || 'codespace-dev-secret-key-2024',
-    resave: true, // Force session to be saved back to the session store
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: "mongodb+srv://Codeyogi:oqZhnpSgOGVyYvco@codeeditor.pmsiorb.mongodb.net/codespace",
+      touchAfter: 24 * 3600, // lazy session update
+      ttl: sessionTtl / 1000, // convert to seconds
+    }),
     cookie: {
       httpOnly: false, // Allow client-side access for better persistence
       secure: false, // Set to true in production with HTTPS

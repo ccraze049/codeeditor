@@ -264,12 +264,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
       const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
-      if (!project || projectOwnerId !== userId) {
+      if (projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const updateData = insertProjectSchema.partial().parse(req.body);
+      // Handle null values in request body
+      const sanitizedBody = {
+        ...req.body,
+        isPublic: req.body.isPublic === null ? undefined : req.body.isPublic
+      };
+      const updateData = insertProjectSchema.partial().parse(sanitizedBody);
       const updatedProject = await mongoStorage.updateProject(id, updateData);
       res.json(updatedProject);
     } catch (error) {
@@ -284,8 +293,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
       const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
-      if (!project || projectOwnerId !== userId) {
+      if (projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
