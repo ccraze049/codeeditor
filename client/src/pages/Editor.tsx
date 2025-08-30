@@ -116,18 +116,40 @@ export default function Editor() {
 
   const handleRunProject = async () => {
     try {
-      toast({
-        title: "Project Running",
-        description: "Live preview generated! Check the preview tab.",
-      });
-
-      // Show preview panel
-      setActiveBottomTab("preview");
-      setIsBottomPanelOpen(true);
+      // Call the smart run API to detect project language and get appropriate command
+      const response = await apiRequest("POST", `/api/projects/${projectId}/run`);
+      const runData = await response.json();
+      
+      if (runData.type === 'preview') {
+        toast({
+          title: "Opening Preview",
+          description: runData.description,
+        });
+        // Show preview panel for web projects
+        setActiveBottomTab("preview");
+        setIsBottomPanelOpen(true);
+      } else if (runData.type === 'terminal') {
+        toast({
+          title: "Running Project",
+          description: runData.description,
+        });
+        // Show terminal and auto-execute the command for Python/other projects
+        setActiveBottomTab("terminal");
+        setIsBottomPanelOpen(true);
+        
+        // Auto-execute the detected command
+        setTimeout(() => {
+          // Find terminal component and execute command
+          const terminalEvent = new CustomEvent('autoExecuteCommand', {
+            detail: { command: runData.command, projectId }
+          });
+          window.dispatchEvent(terminalEvent);
+        }, 500);
+      }
     } catch (error) {
       toast({
         title: "Run Failed",
-        description: "Failed to generate preview.",
+        description: "Failed to run project. Please try again.",
         variant: "destructive",
       });
     }

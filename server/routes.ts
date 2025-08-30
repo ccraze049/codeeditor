@@ -1093,6 +1093,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Auto-run project based on language detection
+  app.post('/api/projects/:id/run', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const project = await mongoStorage.getProject(id);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const files = await mongoStorage.getProjectFiles(id);
+      const language = detectProjectLanguage(files);
+      
+      let command = '';
+      let description = '';
+      
+      switch (language) {
+        case 'python':
+          command = 'python main.py';
+          description = 'Running Python application';
+          break;
+        case 'react':
+        case 'javascript':
+          command = 'npm start';
+          description = 'Starting React development server';
+          break;
+        case 'html':
+          return res.json({
+            type: 'preview',
+            previewUrl: `/api/projects/${id}/preview-html`,
+            description: 'Opening HTML preview'
+          });
+        default:
+          return res.status(400).json({ message: 'Unknown project language' });
+      }
+      
+      res.json({
+        type: 'terminal',
+        command,
+        description,
+        projectId: id
+      });
+    } catch (error) {
+      console.error('Error running project:', error);
+      res.status(500).json({ message: 'Failed to run project' });
+    }
+  });
+
+  // Helper function to detect project language
+  function detectProjectLanguage(files: any[]): string {
+    const fileNames = files.map(f => f.name.toLowerCase());
+    const filePaths = files.map(f => f.path.toLowerCase());
+    
+    // Check for Python files
+    if (fileNames.includes('main.py') || filePaths.some(p => p.endsWith('.py'))) {
+      return 'python';
+    }
+    
+    // Check for React files
+    if (fileNames.includes('app.jsx') || fileNames.includes('app.js') || 
+        filePaths.some(p => p.endsWith('.jsx') || p.endsWith('.tsx'))) {
+      return 'react';
+    }
+    
+    // Check for HTML files
+    if (fileNames.includes('index.html') || filePaths.some(p => p.endsWith('.html'))) {
+      return 'html';
+    }
+    
+    // Check for Node.js project
+    if (fileNames.includes('package.json')) {
+      return 'javascript';
+    }
+    
+    return 'unknown';
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }
