@@ -61,23 +61,6 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     }
   }, [lines, isRunning]);
 
-  // Listen for auto-execute command events from run button
-  useEffect(() => {
-    const handleAutoExecute = (event: CustomEvent) => {
-      const { command, projectId: eventProjectId } = event.detail;
-      if (eventProjectId === projectId) {
-        setCurrentCommand(command);
-        addLine(`$ ${command}`, 'command');
-        executeCommandMutation.mutate(command);
-      }
-    };
-    
-    window.addEventListener('autoExecuteCommand', handleAutoExecute as EventListener);
-    
-    return () => {
-      window.removeEventListener('autoExecuteCommand', handleAutoExecute as EventListener);
-    };
-  }, [projectId, executeCommandMutation]);
 
   const addLine = (content: string, type: TerminalLine['type'] = 'output') => {
     const newLine: TerminalLine = {
@@ -137,6 +120,24 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       setCurrentCommand("");
     }
   });
+
+  // Listen for auto-execute command events from run button
+  useEffect(() => {
+    const handleAutoExecute = (event: CustomEvent) => {
+      const { command, projectId: eventProjectId } = event.detail;
+      if (eventProjectId === projectId) {
+        setCurrentCommand(command);
+        addLine(`$ ${command}`, 'command');
+        executeCommandMutation.mutate(command);
+      }
+    };
+    
+    window.addEventListener('autoExecuteCommand', handleAutoExecute as EventListener);
+    
+    return () => {
+      window.removeEventListener('autoExecuteCommand', handleAutoExecute as EventListener);
+    };
+  }, [projectId, executeCommandMutation]);
 
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
