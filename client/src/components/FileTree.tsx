@@ -141,14 +141,35 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
   };
 
   const buildFileTree = (parentId: string | null = null, level: number = 0): JSX.Element[] => {
-    // Filter out duplicate files by path
+    // Debug: Log the parent-child relationships
+    if (level === 0) {
+      console.log('Building file tree. All files:', files.map(f => ({ 
+        id: f.id.substring(0,8), 
+        name: f.name, 
+        parentId: f.parentId?.substring(0,8) || 'null',
+        isFolder: f.isFolder 
+      })));
+    }
+
+    // Get all files that belong to this parent
+    const childFiles = files.filter(file => {
+      // For root level (parentId is null), show files with no parentId or parentId that doesn't exist in files
+      if (parentId === null) {
+        return !file.parentId || !files.some(f => f.id === file.parentId);
+      }
+      // For other levels, show files whose parentId matches the current parentId
+      return file.parentId === parentId;
+    });
+
+    console.log(`Level ${level}, parentId: ${parentId?.substring(0,8) || 'null'}, found ${childFiles.length} children:`, 
+      childFiles.map(f => f.name));
+
+    // Remove duplicates and sort
     const uniqueFiles = new Map();
-    files.forEach(file => {
-      if (file.parentId === parentId) {
-        const key = `${file.path}-${file.name}`;
-        if (!uniqueFiles.has(key) || file.id < uniqueFiles.get(key).id) {
-          uniqueFiles.set(key, file);
-        }
+    childFiles.forEach(file => {
+      const key = `${file.path}-${file.name}`;
+      if (!uniqueFiles.has(key) || file.id < uniqueFiles.get(key).id) {
+        uniqueFiles.set(key, file);
       }
     });
     
