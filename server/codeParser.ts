@@ -22,55 +22,16 @@ export interface ParsedProject {
 /**
  * Parse AI-generated code and separate into appropriate files
  */
-export async function parseAndCreateProjectFiles(prompt: string, projectName: string): Promise<ParsedProject> {
+export async function parseAndCreateProjectFiles(prompt: string, projectName: string, language: string = 'react'): Promise<ParsedProject> {
   console.log('Parsing AI generated code for multi-file structure:', prompt);
   
-  // Optimized single-call prompt for faster generation
-  const optimizedPrompt = `Create a complete React application for: "${prompt}"
-
-RETURN ONLY the code in this exact format (no explanations):
-
-=== FILENAME: App.jsx ===
-import React, { useState } from 'react';
-import './styles/App.css';
-
-function App() {
-  const [state, setState] = useState('');
-  
-  return (
-    <div className="app">
-      <h1>${projectName || 'My App'}</h1>
-      {/* Your app content here */}
-    </div>
-  );
-}
-
-export default App;
-
-=== FILENAME: styles/App.css ===
-.app {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-=== FILENAME: package.json ===
-{
-  "name": "${projectName?.toLowerCase().replace(/\s+/g, '-') || 'my-app'}",
-  "version": "1.0.0",
-  "dependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  }
-}
-
-Make it functional and complete for: ${prompt}`;
+  // Create optimized prompt based on selected language
+  const optimizedPrompt = getLanguagePrompt(language, prompt, projectName);
 
   let generatedCode = '';
   try {
     // Single optimized API call
-    generatedCode = await generateCode(optimizedPrompt, 'javascript');
+    generatedCode = await generateCode(optimizedPrompt, language === 'python' ? 'python' : 'javascript');
     
     // Parse the generated code into separate files
     const parsedFiles = parseCodeBlocks(generatedCode, prompt, projectName);
@@ -654,4 +615,311 @@ export default App;`;
     files,
     projectStructure: analyzeProjectStructure(files)
   };
+}
+
+/**
+ * Get language-specific prompt template
+ */
+function getLanguagePrompt(language: string, prompt: string, projectName: string): string {
+  const safeName = projectName?.toLowerCase().replace(/\s+/g, '-') || 'my-app';
+  
+  switch (language) {
+    case 'react':
+      return `Create a complete React application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: App.jsx ===
+import React, { useState } from 'react';
+import './styles/App.css';
+
+function App() {
+  const [state, setState] = useState('');
+  
+  return (
+    <div className="app">
+      <h1>${projectName || 'My App'}</h1>
+      {/* Your app content here */}
+    </div>
+  );
+}
+
+export default App;
+
+=== FILENAME: styles/App.css ===
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+=== FILENAME: package.json ===
+{
+  "name": "${safeName}",
+  "version": "1.0.0",
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
+
+Make it functional and complete for: ${prompt}`;
+
+    case 'python':
+      return `Create a complete Python application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: main.py ===
+#!/usr/bin/env python3
+
+def main():
+    print("${projectName || 'My Python App'}")
+    # Your application logic here
+
+if __name__ == "__main__":
+    main()
+
+=== FILENAME: requirements.txt ===
+# Add your Python dependencies here
+
+=== FILENAME: README.md ===
+# ${projectName || 'Python Project'}
+
+${prompt}
+
+## How to run
+\`\`\`bash
+python main.py
+\`\`\`
+
+Make it functional and complete for: ${prompt}`;
+
+    case 'javascript':
+    case 'html':
+      return `Create a complete HTML/CSS/JavaScript application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: index.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${projectName || 'My App'}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>${projectName || 'My App'}</h1>
+        <!-- Your content here -->
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+
+=== FILENAME: style.css ===
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f5f5f5;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+=== FILENAME: script.js ===
+console.log('${projectName || 'My App'} loaded');
+// Your JavaScript code here
+
+Make it functional and complete for: ${prompt}`;
+
+    case 'typescript':
+      return `Create a complete TypeScript application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: main.ts ===
+interface AppConfig {
+    name: string;
+    version: string;
+}
+
+const config: AppConfig = {
+    name: "${projectName || 'My TypeScript App'}",
+    version: "1.0.0"
+};
+
+function main(): void {
+    console.log(\`\${config.name} v\${config.version}\`);
+    // Your application logic here
+}
+
+main();
+
+=== FILENAME: package.json ===
+{
+  "name": "${safeName}",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "ts-node main.ts",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "ts-node": "^10.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
+
+=== FILENAME: tsconfig.json ===
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true
+  }
+}
+
+Make it functional and complete for: ${prompt}`;
+
+    case 'nodejs':
+      return `Create a complete Node.js application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: server.js ===
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Welcome to ${projectName || 'My Node.js App'}',
+        status: 'running'
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(\`${projectName || 'Server'} running on port \${PORT}\`);
+});
+
+=== FILENAME: package.json ===
+{
+  "name": "${safeName}",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
+
+Make it functional and complete for: ${prompt}`;
+
+    case 'java':
+      return `Create a complete Java application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: Main.java ===
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("${projectName || 'My Java App'}");
+        // Your application logic here
+    }
+}
+
+Make it functional and complete for: ${prompt}`;
+
+    case 'cpp':
+      return `Create a complete C++ application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: main.cpp ===
+#include <iostream>
+#include <string>
+
+int main() {
+    std::cout << "${projectName || 'My C++ App'}" << std::endl;
+    // Your application logic here
+    return 0;
+}
+
+=== FILENAME: Makefile ===
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall
+TARGET = main
+SOURCES = main.cpp
+
+\$(TARGET): \$(SOURCES)
+        \$(CXX) \$(CXXFLAGS) -o \$(TARGET) \$(SOURCES)
+
+clean:
+        rm -f \$(TARGET)
+
+Make it functional and complete for: ${prompt}`;
+
+    default:
+      // Default to React
+      return `Create a complete React application for: "${prompt}"
+
+RETURN ONLY the code in this exact format (no explanations):
+
+=== FILENAME: App.jsx ===
+import React, { useState } from 'react';
+import './styles/App.css';
+
+function App() {
+  const [state, setState] = useState('');
+  
+  return (
+    <div className="app">
+      <h1>${projectName || 'My App'}</h1>
+      {/* Your app content here */}
+    </div>
+  );
+}
+
+export default App;
+
+=== FILENAME: styles/App.css ===
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+=== FILENAME: package.json ===
+{
+  "name": "${safeName}",
+  "version": "1.0.0",
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
+
+Make it functional and complete for: ${prompt}`;
+  }
 }

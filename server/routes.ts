@@ -33,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/projects/ai-create', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user._id?.toString() || req.user.id;
-      const { prompt, name } = req.body;
+      const { prompt, name, language = 'react' } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ message: "AI prompt is required" });
@@ -51,8 +51,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const project = await mongoStorage.createProject(projectData);
       
       // Parse AI-generated code into separate files
-      console.log('Creating multi-file AI project for prompt:', prompt);
-      const parsedProject = await parseAndCreateProjectFiles(prompt, projectName);
+      console.log('Creating multi-file AI project for prompt:', prompt, 'Language:', language);
+      const parsedProject = await parseAndCreateProjectFiles(prompt, projectName, language);
       
       // First, create necessary folders
       const foldersToCreate = new Set<string>();

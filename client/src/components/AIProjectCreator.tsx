@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -32,9 +39,10 @@ export default function AIProjectCreator({ onProjectCreated }: AIProjectCreatorP
   const [isOpen, setIsOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiProjectName, setAiProjectName] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("react");
 
   const createAIProjectMutation = useMutation({
-    mutationFn: async (data: { prompt: string; name?: string }) => {
+    mutationFn: async (data: { prompt: string; name?: string; language?: string }) => {
       const response = await apiRequest("POST", "/api/projects/ai-create", data);
       return await response.json();
     },
@@ -43,6 +51,7 @@ export default function AIProjectCreator({ onProjectCreated }: AIProjectCreatorP
       setIsOpen(false);
       setAiPrompt("");
       setAiProjectName("");
+      setSelectedLanguage("react");
       toast({
         title: "AI Project Created!",
         description: "Your project has been generated with AI assistance.",
@@ -87,6 +96,7 @@ export default function AIProjectCreator({ onProjectCreated }: AIProjectCreatorP
     createAIProjectMutation.mutate({
       prompt: aiPrompt,
       name: aiProjectName || undefined,
+      language: selectedLanguage,
     });
   };
 
@@ -119,6 +129,24 @@ export default function AIProjectCreator({ onProjectCreated }: AIProjectCreatorP
               className="min-h-[100px] bg-ide-bg-tertiary border-ide-border"
               data-testid="textarea-ai-prompt"
             />
+          </div>
+          <div>
+            <Label htmlFor="language-select">Programming Language</Label>
+            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+              <SelectTrigger className="bg-ide-bg-tertiary border-ide-border" data-testid="select-language">
+                <SelectValue placeholder="Select a language" />
+              </SelectTrigger>
+              <SelectContent className="bg-ide-bg-secondary border-ide-border">
+                <SelectItem value="react">React (JavaScript)</SelectItem>
+                <SelectItem value="python">Python</SelectItem>
+                <SelectItem value="javascript">Vanilla JavaScript</SelectItem>
+                <SelectItem value="typescript">TypeScript</SelectItem>
+                <SelectItem value="html">HTML/CSS</SelectItem>
+                <SelectItem value="nodejs">Node.js</SelectItem>
+                <SelectItem value="java">Java</SelectItem>
+                <SelectItem value="cpp">C++</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label htmlFor="ai-project-name">Project Name (optional)</Label>
