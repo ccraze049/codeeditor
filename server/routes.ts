@@ -262,11 +262,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
-      if (!project || project.ownerId !== userId) {
+      if (!project || project.ownerId?.toString() !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -281,11 +281,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
-      if (!project || project.ownerId !== userId) {
+      if (!project || project.ownerId?.toString() !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -347,12 +347,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { projectId } = req.params;
       
       // Check project access
       const project = await mongoStorage.getProject(projectId);
-      if (!project || project.ownerId !== userId) {
+      if (!project || project.ownerId?.toString() !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -370,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { id } = req.params;
       const file = await mongoStorage.getFile(id);
       
@@ -380,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check project access
       const project = await mongoStorage.getProject(file.projectId);
-      if (!project || project.ownerId !== userId) {
+      if (!project || project.ownerId?.toString() !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -421,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { id } = req.params;
       const file = await mongoStorage.getFile(id);
       
@@ -431,7 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check project access
       const project = await mongoStorage.getProject(file.projectId);
-      if (!project || project.ownerId !== userId) {
+      if (!project || project.ownerId?.toString() !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
