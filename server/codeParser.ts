@@ -37,7 +37,7 @@ export async function parseAndCreateProjectFiles(prompt: string, projectName: st
     const parsedFiles = parseCodeBlocks(generatedCode, prompt, projectName);
     
     // Quick basic file check without additional API calls
-    const finalFiles = parsedFiles.length > 0 ? parsedFiles : (await createFallbackFiles(prompt, projectName)).files;
+    const finalFiles = parsedFiles.length > 0 ? parsedFiles : (await createFallbackFiles(prompt, projectName, language)).files;
     
     return {
       files: finalFiles,
@@ -48,7 +48,7 @@ export async function parseAndCreateProjectFiles(prompt: string, projectName: st
     console.error('Error parsing AI generated code:', error);
     
     // Fast fallback without additional API calls
-    const fallback = await createFallbackFiles(prompt, projectName);
+    const fallback = await createFallbackFiles(prompt, projectName, language);
     return fallback;
   }
 }
@@ -169,35 +169,138 @@ async function ensureBasicFiles(existingFiles: ParsedCodeFile[], prompt: string,
 /**
  * Create fallback files when parsing fails
  */
-async function createFallbackFiles(prompt: string, projectName: string): Promise<ParsedProject> {
-  console.log('Creating fallback files for project:', projectName);
+async function createFallbackFiles(prompt: string, projectName: string, language: string = 'react'): Promise<ParsedProject> {
+  console.log('Creating fallback files for project:', projectName, 'Language:', language);
   
   const files: ParsedCodeFile[] = [];
   
-  // Generate modular React component
-  const reactCode = await generateCode(`Create a modular React application with separate components for: ${prompt}`, 'javascript');
-  const extractedFiles = extractComponentsFromCode(reactCode, prompt);
-  files.push(...extractedFiles);
-  
-  // Generate CSS with proper structure
-  const cssCode = await generateCode(`Create modern CSS styles for: ${prompt}`, 'css');
-  files.push({
-    name: 'styles/App.css',
-    path: '/styles/App.css',
-    content: cleanCodeContent(cssCode),
-    language: 'css'
-  });
-  
-  // Create package.json
-  files.push({
-    name: 'package.json',
-    path: '/package.json',
-    content: createPackageJson(projectName),
-    language: 'json'
-  });
+  if (language === 'python') {
+    // Create Python fallback files
+    files.push({
+      name: 'main.py',
+      path: '/main.py',
+      content: `#!/usr/bin/env python3
+"""
+${prompt} - Python Application
+"""
+
+def main():
+    """Main function for ${prompt}"""
+    print("${projectName || 'Python Application'}")
+    
+    # Basic calculator functionality if prompt mentions calculator
+    if "calculator" in "${prompt.toLowerCase()}":
+        print("Simple Calculator - Enter 'quit' to exit")
+        
+        while True:
+            try:
+                user_input = input("\\nEnter calculation (e.g., 2 + 3) or 'quit': ").strip()
+                
+                if user_input.lower() == 'quit':
+                    print("Goodbye!")
+                    break
+                
+                # Basic calculator logic
+                if '+' in user_input:
+                    parts = user_input.split('+')
+                    if len(parts) == 2:
+                        result = float(parts[0].strip()) + float(parts[1].strip())
+                        print(f"Result: {result}")
+                    else:
+                        print("Invalid format. Use: number + number")
+                elif '-' in user_input:
+                    parts = user_input.split('-')
+                    if len(parts) == 2:
+                        result = float(parts[0].strip()) - float(parts[1].strip())
+                        print(f"Result: {result}")
+                    else:
+                        print("Invalid format. Use: number - number")
+                elif '*' in user_input:
+                    parts = user_input.split('*')
+                    if len(parts) == 2:
+                        result = float(parts[0].strip()) * float(parts[1].strip())
+                        print(f"Result: {result}")
+                    else:
+                        print("Invalid format. Use: number * number")
+                elif '/' in user_input:
+                    parts = user_input.split('/')
+                    if len(parts) == 2:
+                        num1, num2 = float(parts[0].strip()), float(parts[1].strip())
+                        if num2 != 0:
+                            result = num1 / num2
+                            print(f"Result: {result}")
+                        else:
+                            print("Error: Cannot divide by zero!")
+                    else:
+                        print("Invalid format. Use: number / number")
+                else:
+                    print("Unsupported operation. Use +, -, *, or /")
+                    
+            except ValueError:
+                print("Error: Please enter valid numbers")
+            except KeyboardInterrupt:
+                print("\\nGoodbye!")
+                break
+            except Exception as e:
+                print(f"Error: {e}")
+    else:
+        print("This is a Python application for: ${prompt}")
+
+if __name__ == "__main__":
+    main()`,
+      language: 'python'
+    });
+    
+    files.push({
+      name: 'requirements.txt',
+      path: '/requirements.txt',
+      content: '# No external dependencies required\\n# Add any additional packages you need here',
+      language: 'text'
+    });
+    
+    files.push({
+      name: 'README.md',
+      path: '/README.md',
+      content: `# ${projectName || 'Python Project'}
+
+${prompt}
+
+A Python application for ${prompt}.
+
+## How to run
+
+\`\`\`bash
+python main.py
+\`\`\``,
+      language: 'markdown'
+    });
+    
+  } else {
+    // Generate modular React component
+    const reactCode = await generateCode(`Create a modular React application with separate components for: ${prompt}`, 'javascript');
+    const extractedFiles = extractComponentsFromCode(reactCode, prompt);
+    files.push(...extractedFiles);
+    
+    // Generate CSS with proper structure
+    const cssCode = await generateCode(`Create modern CSS styles for: ${prompt}`, 'css');
+    files.push({
+      name: 'styles/App.css',
+      path: '/styles/App.css',
+      content: cleanCodeContent(cssCode),
+      language: 'css'
+    });
+    
+    // Create package.json
+    files.push({
+      name: 'package.json',
+      path: '/package.json',
+      content: createPackageJson(projectName),
+      language: 'json'
+    });
+  }
   
   return {
-    files: ensureProperStructure(files),
+    files: language === 'python' ? files : ensureProperStructure(files),
     projectStructure: analyzeProjectStructure(files)
   };
 }
@@ -667,32 +770,105 @@ export default App;
 Make it functional and complete for: ${prompt}`;
 
     case 'python':
-      return `Create a complete Python application for: "${prompt}"
+      return `Create a complete, functional Python application for: "${prompt}"
 
 RETURN ONLY the code in this exact format (no explanations):
 
 === FILENAME: main.py ===
 #!/usr/bin/env python3
+"""
+${prompt} - A Python application
+"""
 
 def main():
-    print("${projectName || 'My Python App'}")
-    # Your application logic here
+    """Main function"""
+    print("${projectName || 'Python Application'}")
+    
+    # If this is a calculator, implement calculator functionality
+    if "calculator" in "${prompt.toLowerCase()}":
+        print("Simple Calculator")
+        print("Enter 'quit' to exit")
+        
+        while True:
+            try:
+                user_input = input("\\nEnter calculation (e.g., 2 + 3) or 'quit': ").strip()
+                
+                if user_input.lower() == 'quit':
+                    print("Goodbye!")
+                    break
+                
+                # Basic calculator logic
+                if '+' in user_input:
+                    parts = user_input.split('+')
+                    if len(parts) == 2:
+                        result = float(parts[0].strip()) + float(parts[1].strip())
+                        print(f"Result: {result}")
+                    else:
+                        print("Invalid format. Use: number + number")
+                elif '-' in user_input:
+                    parts = user_input.split('-')
+                    if len(parts) == 2:
+                        result = float(parts[0].strip()) - float(parts[1].strip())
+                        print(f"Result: {result}")
+                    else:
+                        print("Invalid format. Use: number - number")
+                elif '*' in user_input:
+                    parts = user_input.split('*')
+                    if len(parts) == 2:
+                        result = float(parts[0].strip()) * float(parts[1].strip())
+                        print(f"Result: {result}")
+                    else:
+                        print("Invalid format. Use: number * number")
+                elif '/' in user_input:
+                    parts = user_input.split('/')
+                    if len(parts) == 2:
+                        num1, num2 = float(parts[0].strip()), float(parts[1].strip())
+                        if num2 != 0:
+                            result = num1 / num2
+                            print(f"Result: {result}")
+                        else:
+                            print("Error: Cannot divide by zero!")
+                    else:
+                        print("Invalid format. Use: number / number")
+                else:
+                    print("Unsupported operation. Use +, -, *, or /")
+                    
+            except ValueError:
+                print("Error: Please enter valid numbers")
+            except KeyboardInterrupt:
+                print("\\nGoodbye!")
+                break
+            except Exception as e:
+                print(f"Error: {e}")
+    else:
+        # Generic Python application
+        print("This is a Python application for: ${prompt}")
 
 if __name__ == "__main__":
     main()
 
 === FILENAME: requirements.txt ===
-# Add your Python dependencies here
+# No external dependencies required for basic functionality
+# Add any additional packages you need here
 
 === FILENAME: README.md ===
 # ${projectName || 'Python Project'}
 
 ${prompt}
 
+A Python application that provides ${prompt.toLowerCase()} functionality.
+
 ## How to run
+
 \`\`\`bash
 python main.py
 \`\`\`
+
+## Features
+
+- Command-line interface
+- Interactive input/output
+- Error handling for invalid inputs
 
 Make it functional and complete for: ${prompt}`;
 
