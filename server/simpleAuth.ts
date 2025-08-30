@@ -6,18 +6,19 @@ import type { Express, RequestHandler } from "express";
 
 // Session configuration
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const sessionTtl = 30 * 24 * 60 * 60 * 1000; // 30 days
   
   return session({
     secret: process.env.SESSION_SECRET || 'codespace-dev-secret-key-2024',
-    resave: false,
-    saveUninitialized: true, // Changed to true for development
+    resave: true, // Force session to be saved back to the session store
+    saveUninitialized: true,
     cookie: {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access for better persistence
       secure: false, // Set to true in production with HTTPS
       maxAge: sessionTtl,
-      sameSite: 'lax', // Add sameSite for better compatibility
+      sameSite: 'lax',
     },
+    name: 'codespace.sid', // Custom session name
   });
 }
 
