@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { mongoStorage } from "./mongoStorage";
+// Legacy storage import kept for reference
+// import { storage } from "./storage";
 import { setupSimpleAuth, isAuthenticated } from "./simpleAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema } from "@shared/schema";
 import { generateCode, explainCode, debugCode, chatWithAI } from "./gemini-ai.js";
@@ -21,7 +23,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const projects = await storage.getUserProjects(userId);
+      const projects = await mongoStorage.getUserProjects(userId);
       res.json(projects);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -48,7 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublic: false,
       };
       
-      const project = await storage.createProject(projectData);
+      const project = await mongoStorage.createProject(projectData);
       
       // Parse AI-generated code into separate files
       console.log('Creating multi-file AI project for prompt:', prompt);
@@ -69,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const folderPath of Array.from(foldersToCreate).sort()) {
         try {
           const folderName = folderPath.split('/').pop() || '';
-          await storage.createFile({
+          await mongoStorage.createFile({
             projectId: project.id,
             name: folderName,
             path: folderPath,
@@ -86,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdFiles = [];
       for (const file of parsedProject.files) {
         try {
-          const createdFile = await storage.createFile({
+          const createdFile = await mongoStorage.createFile({
             projectId: project.id,
             name: file.name,
             path: file.path,
@@ -119,12 +121,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         ownerId: userId,
       });
-      const project = await storage.createProject(projectData);
+      const project = await mongoStorage.createProject(projectData);
       
       // Create initial files based on template
       if (projectData.template === 'react') {
         // React template
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "App.js",
           path: "/App.js",
@@ -132,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "App.css",
           path: "/App.css",
@@ -140,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "package.json",
           path: "/package.json",
@@ -149,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else if (projectData.template === 'node') {
         // Node.js template
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "index.js",
           path: "/index.js",
@@ -157,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "package.json",
           path: "/package.json",
@@ -165,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "README.md",
           path: "/README.md",
@@ -174,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else if (projectData.template === 'python') {
         // Python template
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "main.py",
           path: "/main.py",
@@ -182,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "requirements.txt",
           path: "/requirements.txt",
@@ -190,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "README.md",
           path: "/README.md",
@@ -199,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else if (projectData.template === 'vanilla') {
         // Vanilla JavaScript template
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "index.html",
           path: "/index.html",
@@ -207,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "style.css",
           path: "/style.css",
@@ -215,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFolder: false,
         });
 
-        await storage.createFile({
+        await mongoStorage.createFile({
           projectId: project.id,
           name: "script.js",
           path: "/script.js",
@@ -235,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const project = await storage.getProject(id);
+      const project = await mongoStorage.getProject(id);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
@@ -244,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user has access
       const hasAccess = project.ownerId === userId || project.isPublic;
       if (!hasAccess) {
-        const collaboration = await storage.getCollaboration(id, userId);
+        const collaboration = await mongoStorage.getCollaboration(id, userId);
         if (!collaboration) {
           return res.status(403).json({ message: "Access denied" });
         }
@@ -261,14 +263,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const project = await storage.getProject(id);
+      const project = await mongoStorage.getProject(id);
       
       if (!project || project.ownerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const updateData = insertProjectSchema.partial().parse(req.body);
-      const updatedProject = await storage.updateProject(id, updateData);
+      const updatedProject = await mongoStorage.updateProject(id, updateData);
       res.json(updatedProject);
     } catch (error) {
       console.error("Error updating project:", error);
@@ -280,13 +282,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const project = await storage.getProject(id);
+      const project = await mongoStorage.getProject(id);
       
       if (!project || project.ownerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      await storage.deleteProject(id);
+      await mongoStorage.deleteProject(id);
       res.json({ message: "Project deleted successfully" });
     } catch (error) {
       console.error("Error deleting project:", error);
@@ -302,21 +304,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sync } = req.query; // Optional sync parameter
       
       // Check project access
-      const project = await storage.getProject(projectId);
+      const project = await mongoStorage.getProject(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
       const hasAccess = project.ownerId === userId || project.isPublic;
       if (!hasAccess) {
-        const collaboration = await storage.getCollaboration(projectId, userId);
+        const collaboration = await mongoStorage.getCollaboration(projectId, userId);
         if (!collaboration) {
           return res.status(403).json({ message: "Access denied" });
         }
       }
 
       // Perform filesystem sync if requested or if project has few files
-      const currentFiles = await storage.getProjectFiles(projectId);
+      const currentFiles = await mongoStorage.getProjectFiles(projectId);
       
       if (sync === 'true' || currentFiles.length <= 3) {
         try {
@@ -334,7 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get updated files list
-      const files = await storage.getProjectFiles(projectId);
+      const files = await mongoStorage.getProjectFiles(projectId);
       res.json(files);
     } catch (error) {
       console.error("Error fetching files:", error);
@@ -348,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { projectId } = req.params;
       
       // Check project access
-      const project = await storage.getProject(projectId);
+      const project = await mongoStorage.getProject(projectId);
       if (!project || project.ownerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -357,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         projectId,
       });
-      const file = await storage.createFile(fileData);
+      const file = await mongoStorage.createFile(fileData);
       res.json(file);
     } catch (error) {
       console.error("Error creating file:", error);
@@ -369,20 +371,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const file = await storage.getFile(id);
+      const file = await mongoStorage.getFile(id);
       
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       // Check project access
-      const project = await storage.getProject(file.projectId);
+      const project = await mongoStorage.getProject(file.projectId);
       if (!project || project.ownerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const updateData = insertFileSchema.partial().parse(req.body);
-      const updatedFile = await storage.updateFile(id, updateData);
+      const updatedFile = await mongoStorage.updateFile(id, updateData);
       res.json(updatedFile);
     } catch (error) {
       console.error("Error updating file:", error);
@@ -401,14 +403,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get project files to find the file with matching path
-      const files = await storage.getProjectFiles(projectId);
+      const files = await mongoStorage.getProjectFiles(projectId);
       const file = files.find(f => f.path === path);
       
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
-      const updatedFile = await storage.updateFile(file.id, { content });
+      const updatedFile = await mongoStorage.updateFile(file.id, { content });
       res.json(updatedFile);
     } catch (error) {
       console.error("Error updating file by path:", error);
@@ -420,19 +422,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const file = await storage.getFile(id);
+      const file = await mongoStorage.getFile(id);
       
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       // Check project access
-      const project = await storage.getProject(file.projectId);
+      const project = await mongoStorage.getProject(file.projectId);
       if (!project || project.ownerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      await storage.deleteFile(id);
+      await mongoStorage.deleteFile(id);
       res.json({ message: "File deleted successfully" });
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -516,7 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const folderPath of Array.from(foldersToCreate).sort()) {
         try {
           const folderName = folderPath.split('/').pop() || '';
-          await storage.createFile({
+          await mongoStorage.createFile({
             projectId,
             name: folderName,
             path: folderPath,
@@ -530,7 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create or update files (avoiding duplicates)
       const createdFiles = [];
-      const existingFiles = await storage.getProjectFiles(projectId);
+      const existingFiles = await mongoStorage.getProjectFiles(projectId);
       const processedPaths = new Set<string>();
       
       for (const file of parsedProject.files) {
@@ -546,11 +548,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (existingFile) {
             // Update existing file
-            const updatedFile = await storage.updateFile(existingFile.id, { content: file.content });
+            const updatedFile = await mongoStorage.updateFile(existingFile.id, { content: file.content });
             createdFiles.push(updatedFile);
           } else {
             // Create new file
-            const createdFile = await storage.createFile({
+            const createdFile = await mongoStorage.createFile({
               projectId,
               name: file.name,
               path: file.path,
@@ -587,8 +589,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If asking about specific files or UI improvements, get project context
       if (projectId && (message.toLowerCase().includes('file') || message.toLowerCase().includes('ui') || message.toLowerCase().includes('improve') || message.toLowerCase().includes('app.jsx'))) {
         try {
-          const project = await storage.getProject(projectId);
-          const files = await storage.getProjectFiles(projectId);
+          const project = await mongoStorage.getProject(projectId);
+          const files = await mongoStorage.getProjectFiles(projectId);
           
           // Find App.jsx or main component file
           const appFile = files.find(f => f.name.toLowerCase().includes('app.jsx') || f.name.toLowerCase().includes('app.js'));
@@ -615,18 +617,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Project sharing
+  // Project sharing with users
   app.post('/api/projects/:id/share', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { userEmail, role } = req.body; // role: 'editor' or 'viewer'
+      const userId = req.user.id;
+      
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email is required" });
+      }
+      
+      const project = await mongoStorage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check if current user has permission to share
+      if (project.ownerId.toString() !== userId) {
+        const collaboration = await mongoStorage.getCollaboration(id, userId);
+        if (!collaboration || (collaboration.role !== 'owner' && collaboration.role !== 'editor')) {
+          return res.status(403).json({ message: "You don't have permission to share this project" });
+        }
+      }
+      
+      // Find user to share with
+      const targetUser = await mongoStorage.getUserByEmail(userEmail);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found with this email" });
+      }
+      
+      // Share project with user
+      const success = await mongoStorage.shareProject(id, targetUser._id?.toString() || targetUser.id!, role || 'viewer');
+      
+      if (success) {
+        res.json({ 
+          message: `Project shared with ${userEmail} as ${role || 'viewer'}`,
+          sharedWith: {
+            email: userEmail,
+            role: role || 'viewer'
+          }
+        });
+      } else {
+        res.status(500).json({ message: "Failed to share project" });
+      }
+    } catch (error) {
+      console.error("Error sharing project:", error);
+      res.status(500).json({ message: "Failed to share project" });
+    }
+  });
+
+  // Make project public
+  app.post('/api/projects/:id/make-public', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const project = await storage.getProject(id);
+      const project = await mongoStorage.getProject(id);
       
-      if (!project || project.ownerId !== userId) {
+      if (!project || project.ownerId.toString() !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      await storage.updateProject(id, { isPublic: true });
+      await mongoStorage.updateProject(id, { isPublic: true });
       
       // Generate share URL (using REPLIT_DOMAINS for the domain)
       const domains = process.env.REPLIT_DOMAINS?.split(',') || ['localhost:5000'];
@@ -634,8 +686,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ shareUrl });
     } catch (error) {
-      console.error("Error sharing project:", error);
-      res.status(500).json({ message: "Failed to share project" });
+      console.error("Error making project public:", error);
+      res.status(500).json({ message: "Failed to make project public" });
+    }
+  });
+
+  // Remove project access
+  app.delete('/api/projects/:id/share/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id, userId: targetUserId } = req.params;
+      const userId = req.user.id;
+      
+      const project = await mongoStorage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check if current user has permission to remove access
+      if (project.ownerId.toString() !== userId) {
+        const collaboration = await mongoStorage.getCollaboration(id, userId);
+        if (!collaboration || collaboration.role !== 'owner') {
+          return res.status(403).json({ message: "Only project owners can remove access" });
+        }
+      }
+      
+      const success = await mongoStorage.removeProjectAccess(id, targetUserId);
+      
+      if (success) {
+        res.json({ message: "Access removed successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to remove access" });
+      }
+    } catch (error) {
+      console.error("Error removing project access:", error);
+      res.status(500).json({ message: "Failed to remove access" });
+    }
+  });
+
+  // Get shared projects
+  app.get('/api/projects/shared', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const sharedProjects = await mongoStorage.getSharedProjects(userId);
+      res.json(sharedProjects);
+    } catch (error) {
+      console.error("Error fetching shared projects:", error);
+      res.status(500).json({ message: "Failed to fetch shared projects" });
     }
   });
 
@@ -643,13 +739,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/shared/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const project = await storage.getProject(id);
+      const project = await mongoStorage.getProject(id);
       
       if (!project || !project.isPublic) {
         return res.status(404).json({ message: "Project not found or not public" });
       }
 
-      const files = await storage.getProjectFiles(id);
+      const files = await mongoStorage.getProjectFiles(id);
       res.json({ project, files });
     } catch (error) {
       console.error("Error fetching shared project:", error);
@@ -661,13 +757,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:id/preview-html', async (req, res) => {
     try {
       const { id } = req.params;
-      const project = await storage.getProject(id);
+      const project = await mongoStorage.getProject(id);
       
       if (!project) {
         return res.status(404).send('<h1>Project not found</h1>');
       }
 
-      const files = await storage.getProjectFiles(id);
+      const files = await mongoStorage.getProjectFiles(id);
       
       // Find App.js/App.jsx files (in root or any folder)
       const appJsFile = files.find((f: any) => 
@@ -805,13 +901,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/projects/:id/preview', async (req, res) => {
     try {
       const { id } = req.params;
-      const project = await storage.getProject(id);
+      const project = await mongoStorage.getProject(id);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const files = await storage.getProjectFiles(id);
+      const files = await mongoStorage.getProjectFiles(id);
       const appJsFile = files.find((f: any) => f.name === 'App.js' || f.name === 'App.jsx');
       
       if (!appJsFile) {
@@ -891,7 +987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Sync database files to disk before executing commands
         try {
           console.log(`Syncing project files to disk before command execution`);
-          const projectFiles = await storage.getProjectFiles(projectId);
+          const projectFiles = await mongoStorage.getProjectFiles(projectId);
           
           for (const file of projectFiles) {
             if (!file.isFolder && file.content !== null) {
