@@ -242,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user has access
-      const projectOwnerId = project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
       console.log(`DEBUG: Project access check - userId: "${userId}", projectOwnerId: "${projectOwnerId}", isPublic: ${project.isPublic}`);
       const hasAccess = projectOwnerId === userId || project.isPublic;
       console.log(`DEBUG: hasAccess: ${hasAccess}`);
@@ -266,7 +266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
-      if (!project || project.ownerId?.toString() !== userId) {
+      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -285,7 +286,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
-      if (!project || project.ownerId?.toString() !== userId) {
+      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -310,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const projectOwnerId = project.ownerId?.toString();
+      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
       console.log(`DEBUG: Files access check - userId: "${userId}", projectOwnerId: "${projectOwnerId}", isPublic: ${project.isPublic}`);
       const hasAccess = projectOwnerId === userId || project.isPublic;
       console.log(`DEBUG: Files hasAccess: ${hasAccess}`);
@@ -355,7 +357,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check project access
       const project = await mongoStorage.getProject(projectId);
-      if (!project || project.ownerId?.toString() !== userId) {
+      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -383,7 +386,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check project access
       const project = await mongoStorage.getProject(file.projectId);
-      if (!project || project.ownerId?.toString() !== userId) {
+      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -434,7 +438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check project access
       const project = await mongoStorage.getProject(file.projectId);
-      if (!project || project.ownerId?.toString() !== userId) {
+      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
