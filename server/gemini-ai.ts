@@ -9,19 +9,24 @@ if (!API_KEY) {
 
 async function callGeminiAPI(prompt: string): Promise<string> {
   try {
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ]
+    };
+
+    console.log('Making request to Gemini API:', GEMINI_API_URL);
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
     const response = await axios.post(
       GEMINI_API_URL,
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ]
-      },
+      requestBody,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -30,7 +35,13 @@ async function callGeminiAPI(prompt: string): Promise<string> {
       }
     );
 
-    return response.data.candidates[0].content.parts[0].text;
+    console.log('Gemini API response:', JSON.stringify(response.data, null, 2));
+
+    if (response.data.candidates && response.data.candidates[0] && response.data.candidates[0].content) {
+      return response.data.candidates[0].content.parts[0].text;
+    } else {
+      throw new Error('Unexpected response format from Gemini API');
+    }
   } catch (err: any) {
     console.error("Gemini AI Error:", err.response?.data || err.message);
     
