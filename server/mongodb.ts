@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 // MongoDB connection setup
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = "mongodb+srv://Codeyogi:oqZhnpSgOGVyYvco@codeeditor.pmsiorb.mongodb.net/?retryWrites=true&w=majority&appName=Codeeditor";
 
 if (!MONGODB_URI) {
   throw new Error('MONGODB_URI environment variable is not defined');

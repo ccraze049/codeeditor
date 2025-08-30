@@ -36,7 +36,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
-    req.user = dbUser;
+    req.user = {
+      ...dbUser,
+      id: dbUser._id?.toString() || dbUser.id
+    };
     return next();
   } catch (error) {
     return res.status(401).json({ message: "Unauthorized" });

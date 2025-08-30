@@ -20,7 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.get('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const projects = await mongoStorage.getUserProjects(userId);
       res.json(projects);
     } catch (error) {
@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered project creation with multi-file support
   app.post('/api/projects/ai-create', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { prompt, name } = req.body;
       
       if (!prompt) {
@@ -114,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user._id?.toString() || req.user.id;
       const projectData = insertProjectSchema.parse({
         ...req.body,
         ownerId: userId,
@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
@@ -260,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
@@ -279,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
@@ -298,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced file routes with filesystem sync
   app.get('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { projectId } = req.params;
       const { sync } = req.query; // Optional sync parameter
       
@@ -345,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { projectId } = req.params;
       
       // Check project access
@@ -368,7 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
       const file = await mongoStorage.getFile(id);
       
@@ -419,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id || req.user._id?.toString();
+      const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
       const file = await mongoStorage.getFile(id);
       
