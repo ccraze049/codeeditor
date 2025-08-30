@@ -82,7 +82,7 @@ export async function debugCode(code: string, language: string = "javascript", e
 }
 
 export async function generateCode(prompt: string, language: string = "javascript"): Promise<string> {
-  console.log('Generating code with Gemini AI for prompt:', prompt);
+  console.log('Generating code with Gemini AI for prompt:', prompt, 'Language:', language);
   
   // If it's CSS generation request, use CSS generator
   if (language === 'css' || prompt.toLowerCase().includes('css') || prompt.toLowerCase().includes('styles')) {
@@ -90,7 +90,86 @@ export async function generateCode(prompt: string, language: string = "javascrip
   }
   
   try {
-    const codePrompt = `Create a complete, functional ${language} React application for: "${prompt}"
+    let codePrompt: string;
+    
+    // Create language-specific prompts
+    if (language === 'python') {
+      codePrompt = `Create a complete, functional Python application for: "${prompt}"
+
+IMPORTANT REQUIREMENTS:
+1. Create a well-structured Python application
+2. Use proper Python conventions and best practices
+3. Include clear comments and documentation
+4. Make it functional and complete
+5. Use appropriate Python libraries if needed
+
+Format with file separators:
+=== FILENAME: main.py ===
+#!/usr/bin/env python3
+"""
+${prompt} - Python Application
+"""
+
+def main():
+    """Main function"""
+    print("${prompt}")
+    # Implementation here
+
+if __name__ == "__main__":
+    main()
+
+=== FILENAME: requirements.txt ===
+# Python dependencies
+# Add any required packages here
+
+=== FILENAME: README.md ===
+# ${prompt}
+
+A Python application that ${prompt.toLowerCase()}.
+
+## How to run
+\`\`\`bash
+python main.py
+\`\`\`
+
+Return complete functional Python code for: ${prompt}`;
+    
+    } else if (language === 'html' || language === 'javascript') {
+      codePrompt = `Create a complete, functional HTML/CSS/JavaScript application for: "${prompt}"
+
+IMPORTANT REQUIREMENTS:
+1. Create a well-structured HTML/CSS/JS application
+2. Use modern web standards
+3. Make it responsive and accessible
+4. Include proper functionality
+
+Format with file separators:
+=== FILENAME: index.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${prompt}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Application content -->
+    <script src="script.js"></script>
+</body>
+</html>
+
+=== FILENAME: style.css ===
+/* Styles for ${prompt} */
+
+=== FILENAME: script.js ===
+// JavaScript for ${prompt}
+
+Return complete functional web application for: ${prompt}`;
+    
+    } else {
+      // Default to React for 'react' or unspecified language
+      codePrompt = `Create a complete, functional React application for: "${prompt}"
 
 IMPORTANT REQUIREMENTS:
 1. Create MULTIPLE React components (at least 3-4 components)
@@ -148,11 +227,12 @@ export default Header;
 .header { /* styles */ }
 
 Return complete modular code with proper imports/exports.`;
+    }
     
     return await callGeminiAPI(codePrompt);
   } catch (error) {
     console.error('Error generating code with Gemini AI:', error);
-    return generateFallbackCode(prompt);
+    return generateFallbackCode(prompt, language);
   }
 }
 
@@ -262,7 +342,70 @@ button:hover {
   }
 }
 
-function generateFallbackCode(prompt: string): string {
+function generateFallbackCode(prompt: string, language: string = 'javascript'): string {
+  if (language === 'python') {
+    return `=== FILENAME: main.py ===
+#!/usr/bin/env python3
+"""
+${prompt} - Python Application
+"""
+
+def main():
+    """Main function for ${prompt}"""
+    print("${prompt}")
+    print("This is a basic Python application")
+    
+    # Basic calculator functionality if prompt mentions calculator
+    if "calculator" in "${prompt.toLowerCase()}":
+        while True:
+            try:
+                num1 = float(input("Enter first number (or 'quit' to exit): "))
+                if str(num1) == 'quit':
+                    break
+                operation = input("Enter operation (+, -, *, /): ")
+                num2 = float(input("Enter second number: "))
+                
+                if operation == '+':
+                    result = num1 + num2
+                elif operation == '-':
+                    result = num1 - num2
+                elif operation == '*':
+                    result = num1 * num2
+                elif operation == '/':
+                    if num2 != 0:
+                        result = num1 / num2
+                    else:
+                        print("Error: Division by zero!")
+                        continue
+                else:
+                    print("Invalid operation!")
+                    continue
+                
+                print(f"Result: {result}")
+            except ValueError:
+                print("Invalid input! Please enter numbers.")
+            except KeyboardInterrupt:
+                break
+    
+if __name__ == "__main__":
+    main()
+
+=== FILENAME: requirements.txt ===
+# No external dependencies required
+
+=== FILENAME: README.md ===
+# ${prompt}
+
+A Python application for ${prompt}.
+
+## How to run
+\`\`\`bash
+python main.py
+\`\`\`
+`;
+  }
+  
+  // Default React fallback
   return `// Generated React App for: ${prompt}
 import React, { useState } from 'react';
 import './App.css';

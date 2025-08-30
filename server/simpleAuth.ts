@@ -39,7 +39,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     
     req.user = {
       ...dbUser,
-      id: dbUser._id?.toString() || dbUser.id
+      id: dbUser._id?.toString() || (dbUser as any).id
     };
     return next();
   } catch (error) {
@@ -65,12 +65,12 @@ export async function setupSimpleAuth(app: Express) {
         email: email,
         firstName: name || email.split('@')[0],
         lastName: '',
-        profileImageUrl: null
+        profileImageUrl: undefined
       });
 
       // Store user in session
       (req as any).session.user = {
-        id: user._id?.toString() || user.id,
+        id: user._id?.toString() || (user as any).id,
         email: user.email,
         firstName: user.firstName
       };
@@ -86,7 +86,7 @@ export async function setupSimpleAuth(app: Express) {
       res.json({
         message: "Login successful",
         user: {
-          id: user._id?.toString() || user.id,
+          id: user._id?.toString() || (user as any).id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -149,7 +149,7 @@ export async function setupSimpleAuth(app: Express) {
 
       // Store user in session
       (req as any).session.user = {
-        id: user._id?.toString() || user.id,
+        id: user._id?.toString() || (user as any).id,
         email: user.email,
         firstName: user.firstName
       };
@@ -165,7 +165,7 @@ export async function setupSimpleAuth(app: Express) {
       res.json({
         message: "Signup successful",
         user: {
-          id: user._id?.toString() || user.id,
+          id: user._id?.toString() || (user as any).id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
