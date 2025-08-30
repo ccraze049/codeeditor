@@ -803,6 +803,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.send(htmlContent);
       }
       
+      // Check if this is a Node.js backend project (has package.json but no frontend files)
+      const packageJsonFile = files.find((f: any) => f.name === 'package.json');
+      const hasReactComponents = files.some((f: any) => 
+        f.name === 'App.js' || f.name === 'App.jsx' || 
+        f.path.endsWith('/App.js') || f.path.endsWith('/App.jsx') ||
+        f.name.endsWith('.jsx') || f.name.endsWith('.tsx')
+      );
+
+      if (packageJsonFile && !hasReactComponents) {
+        // This is a Node.js backend project - show a simple preview
+        const previewHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${project.name} - Node.js Project</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      margin: 0; 
+      padding: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+      background: rgba(255,255,255,0.1);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    h1 { margin: 0 0 20px 0; font-size: 2.5em; }
+    p { margin: 10px 0; font-size: 1.2em; opacity: 0.9; }
+    .code { 
+      background: rgba(0,0,0,0.2);
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 ${project.name}</h1>
+    <p>Node.js project is running successfully!</p>
+    <div class="code">npm start</div>
+    <p>This is a backend Node.js project. Check the terminal for server logs and API endpoints.</p>
+  </div>
+</body>
+</html>`;
+        return res.send(previewHtml);
+      }
+      
       // Handle React projects
       // Find App.js/App.jsx files (in root or any folder)
       const appJsFile = files.find((f: any) => 
