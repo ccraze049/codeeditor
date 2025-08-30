@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.get('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const projects = await mongoStorage.getUserProjects(userId);
       res.json(projects);
     } catch (error) {
@@ -34,7 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered project creation with multi-file support
   app.post('/api/projects/ai-create', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { prompt, name } = req.body;
       
       if (!prompt) {
@@ -235,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
@@ -244,7 +244,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user has access
-      const hasAccess = project.ownerId === userId || project.isPublic;
+      const projectOwnerId = project.ownerId?.toString() || project.ownerId;
+      const hasAccess = projectOwnerId === userId || project.isPublic;
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(id, userId);
         if (!collaboration) {
@@ -299,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced file routes with filesystem sync
   app.get('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id?.toString();
       const { projectId } = req.params;
       const { sync } = req.query; // Optional sync parameter
       
@@ -309,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const hasAccess = project.ownerId === userId || project.isPublic;
+      const hasAccess = project.ownerId?.toString() === userId || project.isPublic;
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(projectId, userId);
         if (!collaboration) {
