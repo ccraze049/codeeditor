@@ -770,6 +770,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = await mongoStorage.getProjectFiles(id);
       
+      // Check if this is an HTML project (vanilla JS/HTML)
+      const htmlFile = files.find((f: any) => f.name === 'index.html');
+      
+      if (htmlFile) {
+        // Handle vanilla HTML/CSS/JS projects
+        let htmlContent = htmlFile.content || '';
+        
+        // Find CSS and JS files
+        const cssFiles = files.filter((f: any) => f.name.endsWith('.css'));
+        const jsFiles = files.filter((f: any) => f.name.endsWith('.js') && f.name !== 'package.json');
+        
+        // Inject CSS and JS into HTML
+        cssFiles.forEach(cssFile => {
+          const cssTag = `<style>${cssFile.content || ''}</style>`;
+          if (htmlContent.includes('</head>')) {
+            htmlContent = htmlContent.replace('</head>', `${cssTag}\n</head>`);
+          } else {
+            htmlContent = `<head>${cssTag}</head>${htmlContent}`;
+          }
+        });
+        
+        jsFiles.forEach(jsFile => {
+          const scriptTag = `<script>${jsFile.content || ''}</script>`;
+          if (htmlContent.includes('</body>')) {
+            htmlContent = htmlContent.replace('</body>', `${scriptTag}\n</body>`);
+          } else {
+            htmlContent = `${htmlContent}<script>${jsFile.content || ''}</script>`;
+          }
+        });
+        
+        return res.send(htmlContent);
+      }
+      
+      // Handle React projects
       // Find App.js/App.jsx files (in root or any folder)
       const appJsFile = files.find((f: any) => 
         f.name === 'App.js' || f.name === 'App.jsx' || 
