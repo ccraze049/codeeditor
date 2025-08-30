@@ -1,0 +1,73 @@
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    --border-radius: 5px;
+    --transition-duration: 0.3s;
+}
+
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    padding: 0;
+    background-color: var(--light-color);
+    color: var(--dark-color);
+}
+
+.app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-header {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--box-shadow);
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+.app-main {
+    padding: 20px;
+    flex: 1;
+}
+
+.car-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* CarCard Styles (moved to CarCard.css) */
+
+/* SearchBar Styles (moved to SearchBar.css) */
+
+/* Footer Styles (moved to Footer.css) */
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    .app-header h1 {
+        font-size: 1.5em;
+    }
+
+    .car-grid {
+        grid-template-columns: 1fr; /* Stack cards on smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .app-header {
+        padding: 15px;
+    }
+}

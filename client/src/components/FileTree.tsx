@@ -90,14 +90,6 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
         }));
       };
 
-      // Debug output
-      console.log('Built tree structure:', rootNodes.map(node => ({
-        name: node.name,
-        isFolder: node.isFolder,
-        childCount: node.children.length,
-        children: node.children.map(c => c.name)
-      })));
-
       return sortNodes(rootNodes);
     };
 
@@ -171,12 +163,9 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(fileId)) {
       newExpanded.delete(fileId);
-      console.log(`Collapsed folder: ${fileId}`);
     } else {
       newExpanded.add(fileId);
-      console.log(`Expanded folder: ${fileId}`);
     }
-    console.log('Current expanded folders:', Array.from(newExpanded));
     setExpandedFolders(newExpanded);
   };
 
@@ -217,10 +206,6 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
     const isExpanded = expandedFolders.has(node.id);
     const isActive = activeFileId === node.id;
     
-    // Debug rendering
-    if (node.isFolder) {
-      console.log(`Rendering folder: ${node.name}, isExpanded: ${isExpanded}, children: ${node.children.length}`);
-    }
 
     return (
       <div key={node.id} className="select-none">
