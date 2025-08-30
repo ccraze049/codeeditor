@@ -243,7 +243,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user has access
       const projectOwnerId = project.ownerId?.toString() || project.ownerId;
+      console.log(`DEBUG: Project access check - userId: "${userId}", projectOwnerId: "${projectOwnerId}", isPublic: ${project.isPublic}`);
       const hasAccess = projectOwnerId === userId || project.isPublic;
+      console.log(`DEBUG: hasAccess: ${hasAccess}`);
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(id, userId);
         if (!collaboration) {
@@ -308,7 +310,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const hasAccess = project.ownerId?.toString() === userId || project.isPublic;
+      const projectOwnerId = project.ownerId?.toString();
+      console.log(`DEBUG: Files access check - userId: "${userId}", projectOwnerId: "${projectOwnerId}", isPublic: ${project.isPublic}`);
+      const hasAccess = projectOwnerId === userId || project.isPublic;
+      console.log(`DEBUG: Files hasAccess: ${hasAccess}`);
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(projectId, userId);
         if (!collaboration) {
