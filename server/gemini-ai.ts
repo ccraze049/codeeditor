@@ -1,38 +1,42 @@
-import axios from "axios";
+import axios from 'axios';
 
-const API_KEY = "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";
-const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const API_KEY = process.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
-  console.warn('OPENROUTER_API_KEY not found in environment variables');
+  console.error('GEMINI_API_KEY environment variable is not set');
 }
 
-// Helper function to make OpenRouter API calls
-async function callOpenRouterAPI(prompt: string): Promise<string> {
+async function callGeminiAPI(prompt: string): Promise<string> {
   try {
-    const res = await axios.post(
-      ENDPOINT,
+    const response = await axios.post(
+      GEMINI_API_URL,
       {
-        model: "moonshotai/kimi-dev-72b:free",
-        messages: [
-          { role: "user", content: prompt }
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
         ]
       },
       {
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+          'X-goog-api-key': API_KEY,
         }
       }
     );
 
-    return res.data.choices[0].message.content;
+    return response.data.candidates[0].content.parts[0].text;
   } catch (err: any) {
-    console.error("OpenRouter AI Error:", err.response?.data || err.message);
+    console.error("Gemini AI Error:", err.response?.data || err.message);
     
     // Handle rate limiting specifically
     if (err.response?.status === 429) {
-      console.log("Rate limited by OpenRouter, using fallback generation");
+      console.log("Rate limited by Gemini, using fallback generation");
       throw new Error("Rate limited - using fallback");
     }
     
@@ -41,33 +45,33 @@ async function callOpenRouterAPI(prompt: string): Promise<string> {
 }
 
 export async function explainCode(code: string, language: string = "javascript"): Promise<string> {
-  console.log('Explaining code using OpenRouter AI:', code.substring(0, 50) + '...');
+  console.log('Explaining code using Gemini AI:', code.substring(0, 50) + '...');
   
   try {
     const prompt = `Please explain this ${language} code in simple, clear terms that a beginner could understand. Focus on what the code does, how it works, and any important patterns or concepts it demonstrates:\n\n\`\`\`${language}\n${code}\n\`\`\``;
     
-    return await callOpenRouterAPI(prompt);
+    return await callGeminiAPI(prompt);
   } catch (error) {
-    console.error('Error explaining code with OpenRouter AI:', error);
+    console.error('Error explaining code with Gemini AI:', error);
     return `This ${language} code creates functionality for handling user interactions and displaying content. It follows common patterns for building interactive applications with proper structure and organization.`;
   }
 }
 
 export async function debugCode(code: string, language: string = "javascript", errorMsg?: string): Promise<string> {
-  console.log('Debugging code with OpenRouter AI. Error:', errorMsg);
+  console.log('Debugging code with Gemini AI. Error:', errorMsg);
   
   try {
     const prompt = `I have a ${language} code issue${errorMsg ? ` with this error: "${errorMsg}"` : ''}. Please analyze the code and provide specific debugging suggestions and solutions:\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nProvide clear, actionable steps to fix the issue.`;
     
-    return await callOpenRouterAPI(prompt);
+    return await callGeminiAPI(prompt);
   } catch (error) {
-    console.error('Error debugging code with OpenRouter AI:', error);
+    console.error('Error debugging code with Gemini AI:', error);
     return `General debugging suggestions:\n1. Check the browser console for detailed error messages\n2. Verify all imports are correct and modules are installed\n3. Make sure variable names are spelled correctly\n4. Ensure functions are called with the right parameters\n5. Check for typos in component names and properties`;
   }
 }
 
 export async function generateCode(prompt: string, language: string = "javascript"): Promise<string> {
-  console.log('Generating code with OpenRouter AI for prompt:', prompt);
+  console.log('Generating code with Gemini AI for prompt:', prompt);
   
   // If it's CSS generation request, use CSS generator
   if (language === 'css' || prompt.toLowerCase().includes('css') || prompt.toLowerCase().includes('styles')) {
@@ -134,44 +138,29 @@ export default Header;
 
 Return complete modular code with proper imports/exports.`;
     
-    return await callOpenRouterAPI(codePrompt);
+    return await callGeminiAPI(codePrompt);
   } catch (error) {
-    console.error('Error generating code with OpenRouter AI:', error);
+    console.error('Error generating code with Gemini AI:', error);
     return generateFallbackCode(prompt);
   }
 }
 
-function generateFallbackCode(prompt: string): string {
-  return `import React, { useState } from 'react';
-import './styles/App.css';
-
-function App() {
-  const [message, setMessage] = useState('Hello World!');
-  const [count, setCount] = useState(0);
-
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>{message}</h1>
-        <p>Generated from prompt: "${prompt}"</p>
-        <div className="counter">
-          <button onClick={() => setCount(count - 1)}>-</button>
-          <span>Count: {count}</span>
-          <button onClick={() => setCount(count + 1)}>+</button>
-        </div>
-        <button onClick={() => setMessage('Hello from React!')}>
-          Click me!
-        </button>
-      </header>
-    </div>
-  );
-}
-
-export default App;`;
+export async function chatWithAI(message: string, context?: string): Promise<string> {
+  console.log('Chatting with Gemini AI:', message);
+  
+  try {
+    const contextPrefix = context ? `Context: ${context}\n\n` : '';
+    const prompt = `${contextPrefix}User: ${message}\n\nAs a helpful coding assistant, please provide a clear and helpful response.`;
+    
+    return await callGeminiAPI(prompt);
+  } catch (error) {
+    console.error('Error chatting with Gemini AI:', error);
+    return "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
+  }
 }
 
 async function generateCSSStyles(prompt: string): Promise<string> {
-  console.log('Generating CSS with OpenRouter AI for prompt:', prompt);
+  console.log('Generating CSS with Gemini AI for prompt:', prompt);
   
   try {
     const cssPrompt = `Create modern, mobile-responsive CSS styles for: "${prompt}"
@@ -187,9 +176,9 @@ Requirements:
 
 Return only the CSS code without explanations or markdown formatting.`;
     
-    return await callOpenRouterAPI(cssPrompt);
+    return await callGeminiAPI(cssPrompt);
   } catch (error) {
-    console.error('Error generating CSS with OpenRouter AI:', error);
+    console.error('Error generating CSS with Gemini AI:', error);
     return `.App {
   text-align: center;
   padding: 20px;
@@ -262,40 +251,28 @@ button:hover {
   }
 }
 
-// General AI chat function for any question
-export async function chatWithAI(message: string, context?: string): Promise<string> {
-  console.log('Chatting with OpenRouter AI for message:', message);
+function generateFallbackCode(prompt: string): string {
+  return `// Generated React App for: ${prompt}
+import React, { useState } from 'react';
+import './App.css';
+
+function App() {
+  const [count, setCount] = useState(0);
   
-  try {
-    let prompt = `You are a helpful AI coding assistant. Please respond to this question or request in a clear, helpful way.`;
-    
-    // Check if this is a UI improvement request with code context
-    if (context && (message.toLowerCase().includes('ui') || message.toLowerCase().includes('improve') || message.toLowerCase().includes('app.jsx'))) {
-      prompt = `You are a helpful AI coding assistant. The user is asking for UI improvements to their React application. 
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>Welcome to Your App</h1>
+        <p>This is a basic React application generated for: ${prompt}</p>
+        <div className="counter">
+          <button onClick={() => setCount(count - 1)}>-</button>
+          <span>Count: {count}</span>
+          <button onClick={() => setCount(count + 1)}>+</button>
+        </div>
+      </header>
+    </div>
+  );
+}
 
-${context}
-
-User request: "${message}"
-
-Please provide specific, actionable suggestions for improving the UI. Include:
-1. Specific code improvements or modifications
-2. Modern UI/UX best practices
-3. CSS styling suggestions
-4. Component structure improvements
-5. Accessibility enhancements
-
-Give concrete examples and code snippets where helpful.`;
-    } else {
-      prompt += ` ${context ? `Context: ${context}` : ''}
-
-User message: "${message}"
-
-Provide a helpful, informative response that directly addresses their question or request.`;
-    }
-    
-    return await callOpenRouterAPI(prompt);
-  } catch (error) {
-    console.error('Error chatting with OpenRouter AI:', error);
-    return `I'm here to help with your coding questions! You can ask me to explain code, debug issues, generate new code snippets, or ask general programming questions. What specific task would you like assistance with?`;
-  }
+export default App;`;
 }
