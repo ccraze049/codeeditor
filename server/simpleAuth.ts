@@ -1,5 +1,5 @@
 // Simple Authentication System for CodeSpace IDE
-import { storage } from "./storage";
+import { mongoStorage } from "./mongoStorage";
 import { nanoid } from "nanoid";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
@@ -31,7 +31,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   // Verify user exists in database
   try {
-    const dbUser = await storage.getUser(user.id);
+    const dbUser = await mongoStorage.getUser(user.id);
     if (!dbUser) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -57,7 +57,7 @@ export async function setupSimpleAuth(app: Express) {
       }
 
       // Login or create user
-      const user = await storage.upsertUser({
+      const user = await mongoStorage.upsertUser({
         email: email,
         firstName: name || email.split('@')[0],
         lastName: '',
@@ -66,7 +66,7 @@ export async function setupSimpleAuth(app: Express) {
 
       // Store user in session
       (req as any).session.user = {
-        id: user.id,
+        id: user._id?.toString() || user.id,
         email: user.email,
         firstName: user.firstName
       };
@@ -82,7 +82,7 @@ export async function setupSimpleAuth(app: Express) {
       res.json({
         message: "Login successful",
         user: {
-          id: user.id,
+          id: user._id?.toString() || user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -104,7 +104,7 @@ export async function setupSimpleAuth(app: Express) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const user = await storage.getUser(sessionUser.id);
+      const user = await mongoStorage.getUser(sessionUser.id);
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
@@ -136,16 +136,16 @@ export async function setupSimpleAuth(app: Express) {
       }
 
       // Signup or get existing user
-      const user = await storage.upsertUser({
+      const user = await mongoStorage.upsertUser({
         email: email,
         firstName: firstName || email.split('@')[0],
         lastName: lastName || '',
-        profileImageUrl: null
+        profileImageUrl: undefined
       });
 
       // Store user in session
       (req as any).session.user = {
-        id: user.id,
+        id: user._id?.toString() || user.id,
         email: user.email,
         firstName: user.firstName
       };
@@ -161,7 +161,7 @@ export async function setupSimpleAuth(app: Express) {
       res.json({
         message: "Signup successful",
         user: {
-          id: user.id,
+          id: user._id?.toString() || user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,

@@ -33,11 +33,51 @@ export class MongoStorage {
   // User operations
   async getUser(id: string): Promise<IUser | undefined> {
     try {
-      const user = await User.findById(id).lean();
-      return user || undefined;
+      // Try to find by MongoDB _id first
+      let user = await User.findById(id).lean();
+      
+      // If not found and id is not a valid ObjectId format, try to find by email or create
+      if (!user && !id.match(/^[0-9a-fA-F]{24}$/)) {
+        // This might be a legacy UUID, try to find user by email or other means
+        // For now, return undefined and let the system handle it
+        return undefined;
+      }
+      
+      return user ? {
+        ...user,
+        id: user._id?.toString()
+      } : undefined;
     } catch (error) {
       console.error('Error getting user:', error);
       return undefined;
+    }
+  }
+
+  // Helper method to get user by ID or create if needed
+  async getUserByIdOrCreate(id: string): Promise<IUser> {
+    try {
+      // Try to find existing user
+      let user = await User.findById(id).lean();
+      
+      if (!user && !id.match(/^[0-9a-fA-F]{24}$/)) {
+        // If it's not a valid ObjectId (like a UUID), create a new user
+        const newUser = new User({
+          email: `user-${id}@temp.com`,
+          firstName: 'User',
+          lastName: id.substring(0, 8)
+        });
+        const savedUser = await newUser.save();
+        return savedUser.toObject();
+      }
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error getting or creating user:', error);
+      throw error;
     }
   }
 
@@ -78,7 +118,16 @@ export class MongoStorage {
   // Project operations
   async getUserProjects(userId: string): Promise<IProject[]> {
     try {
-      const objectId = new mongoose.Types.ObjectId(userId);
+      // Handle both ObjectId and UUID formats
+      let objectId: mongoose.Types.ObjectId;
+      
+      if (userId.match(/^[0-9a-fA-F]{24}$/)) {
+        objectId = new mongoose.Types.ObjectId(userId);
+      } else {
+        // This is likely a UUID, try to find the user first
+        const user = await this.getUserByIdOrCreate(userId);
+        objectId = user._id as mongoose.Types.ObjectId;
+      }
       
       // Get projects owned by user
       const ownedProjects = await Project.find({ ownerId: objectId })
@@ -136,11 +185,25 @@ export class MongoStorage {
   async createProject(projectData: any): Promise<IProject> {
     try {
       // Convert string IDs to ObjectIds if needed
-      const processedData = {
-        ...projectData,
-        ownerId: typeof projectData.ownerId === 'string' ? 
-          new mongoose.Types.ObjectId(projectData.ownerId) : projectData.ownerId
-      };
+      let processedData = { ...projectData };
+      
+      // Handle ownerId conversion - if it's a valid ObjectId string, convert it, otherwise create new one
+      if (typeof projectData.ownerId === 'string') {
+        try {
+          // Try to convert if it's a valid 24-char hex string
+          if (projectData.ownerId.match(/^[0-9a-fA-F]{24}$/)) {
+            processedData.ownerId = new mongoose.Types.ObjectId(projectData.ownerId);
+          } else {
+            // If it's not a valid ObjectId format (like UUID), create a new ObjectId and store mapping
+            const existingUser = await this.getUserByIdOrCreate(projectData.ownerId);
+            processedData.ownerId = existingUser._id;
+          }
+        } catch (error) {
+          // If conversion fails, create new ObjectId
+          const existingUser = await this.getUserByIdOrCreate(projectData.ownerId);
+          processedData.ownerId = existingUser._id;
+        }
+      }
       
       const newProject = new Project(processedData);
       const savedProject = await newProject.save();
