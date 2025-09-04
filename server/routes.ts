@@ -1387,10 +1387,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sync files to disk before executing commands
       if (projectId) {
 
-        // Only sync files for file-modifying commands, skip for simple commands
+        // Sync files for all commands that might read or modify files
         const needsFullSync = command.includes('npm') || command.includes('pip') || 
                              command.includes('touch') || command.includes('mkdir') || 
-                             command.includes('cp') || command.includes('mv') || command.includes('rm');
+                             command.includes('cp') || command.includes('mv') || command.includes('rm') ||
+                             command.includes('node') || command.includes('python') || command.includes('java') ||
+                             command.includes('cat') || command.includes('ls');
         
         if (needsFullSync) {
           try {
