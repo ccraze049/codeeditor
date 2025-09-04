@@ -449,33 +449,19 @@ export default function Editor() {
           />
 
           <div className="flex flex-1 overflow-hidden">
-            <div className={`flex-1 ${isBottomPanelOpen ? 'h-1/2' : 'h-full'}`}>
-              <Monaco
-                onSave={() => setLastSaveTime(Date.now())}
-                file={activeFile}
-                projectId={projectId!}
-                isReadOnly={isSharedView}
-              />
-            </div>
-
-            {isAIAssistantOpen && (
-              <div className={`${
-                isMobile 
-                  ? 'absolute right-0 top-0 z-40 h-full w-full bg-ide-bg-secondary shadow-lg' 
-                  : 'relative'
-              }`}>
-                <AIAssistant
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                <Monaco
+                  onSave={() => setLastSaveTime(Date.now())}
+                  file={activeFile}
                   projectId={projectId!}
-                  onClose={() => setIsAIAssistantOpen(false)}
-                  activeFile={activeFile}
+                  isReadOnly={isSharedView}
                 />
               </div>
-            )}
-          </div>
 
-          {/* Bottom Panel */}
-          {isBottomPanelOpen && (
-            <div className="h-1/2 bg-ide-bg-secondary border-t border-ide-border flex flex-col">
+              {/* Bottom Panel */}
+              {isBottomPanelOpen && (
+                <div className="h-80 bg-ide-bg-secondary border-t border-ide-border flex flex-col flex-shrink-0">
               <div className="h-10 flex items-center border-b border-ide-border">
                 <Button
                   variant={activeBottomTab === "terminal" ? "secondary" : "ghost"}
@@ -582,9 +568,26 @@ export default function Editor() {
                   </div>
                 )}
               </div>
+                </div>
+              )}
             </div>
-          )}
+
+            {isAIAssistantOpen && (
+              <div className={`${
+                isMobile 
+                  ? 'absolute right-0 top-0 z-40 h-full w-full bg-ide-bg-secondary shadow-lg' 
+                  : 'relative'
+              }`}>
+                <AIAssistant
+                  projectId={projectId!}
+                  onClose={() => setIsAIAssistantOpen(false)}
+                  activeFile={activeFile}
+                />
+              </div>
+            )}
+          </div>
         </div>
+
       </div>
 
       {/* Share Dialog */}
