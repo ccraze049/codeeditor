@@ -337,10 +337,10 @@ export default function Editor() {
         {/* Sidebar */}
         <div className={`${
           isSidebarCollapsed 
-            ? 'w-12' 
+            ? 'w-12 flex-shrink-0' 
             : isMobile 
               ? 'w-80 absolute left-0 top-0 z-30 h-full shadow-lg' 
-              : 'w-64'
+              : 'w-64 flex-shrink-0'
         } bg-ide-bg-secondary border-r border-ide-border flex flex-col transition-all duration-300`}>
           {!isSidebarCollapsed ? (
             <>
@@ -439,7 +439,7 @@ export default function Editor() {
         </div>
 
         {/* Editor Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={`flex-1 flex flex-col min-w-0 ${isMobile && !isSidebarCollapsed ? 'ml-0' : ''}`}>
           <EditorTabs
             files={projectFiles || []}
             openFileIds={openFiles}
