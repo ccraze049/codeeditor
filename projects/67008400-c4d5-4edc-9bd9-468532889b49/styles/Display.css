@@ -1,0 +1,9 @@
+/* Styles for Display component */
+.display-container {
+  padding: 20px;
+}
+
+.display-title {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}

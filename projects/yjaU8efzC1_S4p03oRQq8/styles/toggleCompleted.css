@@ -1,0 +1,9 @@
+/* Styles for toggleCompleted component */
+.togglecompleted-container {
+  padding: 20px;
+}
+
+.togglecompleted-title {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}

@@ -1,0 +1,201 @@
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --light-gray: #f8f9fa;
+  --dark-gray: #343a40;
+  --text-color: #212529;
+  --border-color: #dee2e6;
+  --box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.075);
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--light-gray);
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app {
+  max-width: 800px;
+  margin: 20px auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  padding: 20px;
+}
+
+.app-header {
+  text-align: center;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.input-section {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.input-section input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.input-section button {
+  padding: 10px 15px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-left: 10px;
+}
+
+.input-section button:hover {
+  background-color: #0056b3;
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.todo-item:last-child {
+  border-bottom: none;
+}
+
+.todo-item input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.todo-item label {
+  flex-grow: 1;
+  cursor: pointer;
+}
+
+.todo-item.completed label {
+  text-decoration: line-through;
+  color: var(--secondary-color);
+}
+
+.todo-item .delete-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.todo-item .delete-button:hover {
+  background-color: #c82333;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.filter-buttons button {
+  background-color: transparent;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+  margin-right: 5px;
+}
+
+.filter-buttons button:hover,
+.filter-buttons button.active {
+  background-color: var(--light-gray);
+}
+
+.clear-completed {
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.clear-completed:hover {
+  background-color: #5a6268;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .app {
+    margin: 10px;
+    padding: 10px;
+  }
+
+  .input-section {
+    flex-direction: column;
+  }
+
+  .input-section button {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-buttons {
+    margin-bottom: 10px;
+  }
+
+  .filter-buttons button {
+    display: block; /* Stack buttons on small screens */
+    width: 100%; /* Make buttons full width */
+    margin-bottom: 5px; /* Add space between stacked buttons */
+  }
+
+  .clear-completed {
+    width: 100%;
+  }
+}
+
+/* Dark mode (optional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --light-gray: #333;
+    --dark-gray: #f8f9fa;
+    --text-color: #eee;
+    --border-color: #555;
+    --box-shadow: 0 0.25rem 0.5rem rgba(255, 255, 255, 0.075);
+  }
+
+  body {
+    background-color: var(--dark-gray);
+    color: var(--text-color);
+  }
+
+  .app {
+    background-color: #444;
+  }
+}

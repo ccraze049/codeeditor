@@ -1,0 +1,9 @@
+/* Styles for TodoItem component */
+.todoitem-container {
+  padding: 20px;
+}
+
+.todoitem-title {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
