@@ -18,6 +18,8 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
   const editorInstanceRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [content, setContent] = useState("");
+  const cursorPositionRef = useRef<any>(null);
+  const scrollPositionRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,8 +109,14 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
 
     const monaco = monacoRef.current;
 
-    // Dispose existing editor
+    // Store cursor and scroll position before disposing editor
     if (editorInstanceRef.current) {
+      try {
+        cursorPositionRef.current = editorInstanceRef.current.getPosition();
+        scrollPositionRef.current = editorInstanceRef.current.getScrollTop();
+      } catch (e) {
+        // Ignore errors if editor is already disposed
+      }
       editorInstanceRef.current.dispose();
     }
 
@@ -242,6 +250,21 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
     editorInstanceRef.current = editor;
     setContent(file?.content || '');
 
+    // Restore cursor and scroll position after editor creation
+    if (cursorPositionRef.current) {
+      setTimeout(() => {
+        try {
+          editor.setPosition(cursorPositionRef.current);
+          if (scrollPositionRef.current) {
+            editor.setScrollTop(scrollPositionRef.current);
+          }
+          editor.focus();
+        } catch (e) {
+          // Ignore errors during position restoration
+        }
+      }, 100);
+    }
+
     // Add change listener for auto-save
     if (!isReadOnly) {
       let saveTimeout: NodeJS.Timeout;
@@ -268,7 +291,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
     return () => {
       editor.dispose();
     };
-  }, [file, monacoRef.current, isLoading, isReadOnly]);
+  }, [file?.id, file?.name, monacoRef.current, isLoading, isReadOnly]);
 
   const getLanguageFromFileName = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
