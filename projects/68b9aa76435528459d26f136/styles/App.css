@@ -1,0 +1,140 @@
+:root {
+  --primary-color: #282c34;
+  --secondary-color: #61dafb;
+  --button-bg: #f0f0f0;
+  --button-hover-bg: #e0e0e0;
+  --operator-bg: #f5923e;
+  --operator-hover-bg: #e07d29;
+  --equals-bg: #5285c7;
+  --equals-hover-bg: #4376b8;
+  --clear-bg: #a9a9a9;
+  --clear-hover-bg: #999999;
+  --display-bg: #333;
+  --display-text-color: white;
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --border-radius: 10px;
+  --transition-duration: 0.2s;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--primary-color);
+  color: var(--display-text-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.calculator {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--primary-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.display {
+  background-color: var(--display-bg);
+  color: var(--display-text-color);
+  text-align: right;
+  padding: 20px;
+  font-size: 2.5rem;
+  font-weight: bold;
+  border-radius: var(--border-radius);
+  margin-bottom: 10px;
+  overflow: auto;
+  word-wrap: break-word;
+  box-shadow: inset 0px 0px 5px rgba(0,0,0,0.3);
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-gap: 10px;
+}
+
+button {
+  background-color: var(--button-bg);
+  color: var(--primary-color);
+  border: none;
+  padding: 15px;
+  font-size: 1.5rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color var(--transition-duration) ease;
+  box-shadow: var(--box-shadow);
+  outline: none;
+}
+
+button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+.operator {
+  background-color: var(--operator-bg);
+  color: white;
+}
+
+.operator:hover {
+  background-color: var(--operator-hover-bg);
+}
+
+.equals {
+  background-color: var(--equals-bg);
+  color: white;
+  grid-column: span 1;
+}
+
+.equals:hover {
+  background-color: var(--equals-hover-bg);
+}
+
+.clear {
+  background-color: var(--clear-bg);
+  color: white;
+  grid-column: span 1;
+}
+
+.clear:hover {
+  background-color: var(--clear-hover-bg);
+}
+
+.zero {
+  grid-column: span 1;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .calculator {
+    max-width: 100%;
+    width: calc(100% - 20px); /* Account for padding */
+    margin: 10px;
+  }
+
+  .display {
+    font-size: 2rem;
+    padding: 15px;
+  }
+
+  button {
+    font-size: 1.2rem;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .buttons {
+    grid-gap: 8px;
+  }
+
+  button {
+    font-size: 1rem;
+    padding: 8px;
+  }
+}

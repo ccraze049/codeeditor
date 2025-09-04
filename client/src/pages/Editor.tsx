@@ -56,13 +56,9 @@ export default function Editor() {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      // Auto-collapse sidebar on mobile
-      if (mobile && !isSidebarCollapsed) {
+      // Auto-collapse sidebar on mobile initially
+      if (mobile && !isSidebarCollapsed && activeFileId) {
         setIsSidebarCollapsed(true);
-      }
-      // Auto-close AI assistant on mobile
-      if (mobile && isAIAssistantOpen) {
-        setIsAIAssistantOpen(false);
       }
     };
     
@@ -70,7 +66,7 @@ export default function Editor() {
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, [isSidebarCollapsed, isAIAssistantOpen]);
+  }, [activeFileId]);
   
   // Query for project data
   const { data: projectData, isLoading: projectLoading } = useQuery<any>({
@@ -294,7 +290,13 @@ export default function Editor() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsAIAssistantOpen(!isAIAssistantOpen)}
+            onClick={() => {
+              setIsAIAssistantOpen(!isAIAssistantOpen);
+              // On mobile, close sidebar when AI opens
+              if (isMobile && !isAIAssistantOpen) {
+                setIsSidebarCollapsed(true);
+              }
+            }}
             className="p-2 hover:bg-ide-bg-tertiary"
             data-testid="button-toggle-ai"
           >

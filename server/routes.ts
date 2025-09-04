@@ -1577,8 +1577,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           break;
         case 'react':
           if (hasPackageJson && !hasNodeModules) {
-            command = 'npm install && npm start';
-            description = 'Installing dependencies and starting React development server';
+            command = 'npm install --prefer-offline --no-audit --no-fund --silent --progress=false && npm start';
+            description = 'Installing dependencies (optimized) and starting React development server';
           } else {
             command = 'npm start';
             description = 'Starting React development server';
