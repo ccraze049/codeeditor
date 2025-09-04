@@ -29,6 +29,13 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       return await response.json();
     },
     onSuccess: () => {
+      // Show success notification
+      toast({
+        title: "File Saved",
+        description: "Changes saved to MongoDB successfully",
+        variant: "default",
+      });
+      
       // Trigger preview refresh when file is saved
       if (onSave) {
         onSave();
@@ -272,13 +279,14 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
         const newContent = editor.getValue();
         setContent(newContent);
         
-        // Auto-save after 2 seconds of inactivity
+        // Auto-save after 1 second of inactivity (reduced for better UX)
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
           if (file && newContent !== file.content) {
+            console.log('Auto-saving file:', file.name);
             updateFileMutation.mutate({ fileId: file.id, content: newContent });
           }
-        }, 2000);
+        }, 1000);
       });
 
       return () => {
@@ -361,12 +369,17 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
         </div>
         {updateFileMutation.isPending && (
           <div className="bg-ide-bg-secondary rounded px-2 py-1 text-xs border border-ide-border">
-            <span className="text-ide-warning">Saving...</span>
+            <span className="text-ide-warning">💾 Auto-saving...</span>
           </div>
         )}
         {file.content !== content && !updateFileMutation.isPending && (
           <div className="bg-ide-bg-secondary rounded px-2 py-1 text-xs border border-ide-border">
-            <span className="text-ide-error">Unsaved</span>
+            <span className="text-ide-error">⏳ Will save in 1s</span>
+          </div>
+        )}
+        {file.content === content && !updateFileMutation.isPending && (
+          <div className="bg-ide-bg-secondary rounded px-2 py-1 text-xs border border-ide-border">
+            <span className="text-green-400">✅ Auto-saved</span>
           </div>
         )}
       </div>
