@@ -70,6 +70,35 @@
   }
 }
 
+/* Mobile-specific optimizations */
+@layer utilities {
+  .mobile-friendly-touch {
+    @apply touch-manipulation;
+  }
+  
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  @media (max-width: 768px) {
+    .mobile-hide {
+      @apply hidden;
+    }
+    
+    .mobile-full {
+      @apply w-full;
+    }
+    
+    .mobile-padding {
+      @apply px-3 py-2;
+    }
+    
+    .mobile-text {
+      @apply text-sm;
+    }
+  }
+}
+
 :root {
   --background: hsl(222.2 84% 4.9%);
   --foreground: hsl(210 40% 98%);

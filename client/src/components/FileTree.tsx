@@ -240,7 +240,7 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
       return (
         <div key={file.id} className="select-none">
           <div
-            className={`flex items-center hover:bg-ide-bg-tertiary px-2 py-1 rounded cursor-pointer group ${
+            className={`flex items-center hover:bg-ide-bg-tertiary px-2 py-2 md:py-1 rounded cursor-pointer group ${
               isActive ? 'bg-ide-bg-tertiary' : ''
             }`}
             style={{ paddingLeft: `${8 + level * 16}px` }}
@@ -275,7 +275,7 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
             
             {getFileIcon(file)}
             
-            <span className="text-sm ml-2 flex-1 truncate">{file.name}</span>
+            <span className="text-sm ml-2 flex-1 truncate leading-5">{file.name}</span>
             
             {file.content !== undefined && file.content !== files.find(f => f.id === file.id)?.content && (
               <div className="w-2 h-2 bg-ide-warning rounded-full ml-2" title="Unsaved changes" />
@@ -323,8 +323,8 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly 
     <div className="flex-1 overflow-y-auto p-2">
       {/* Action buttons */}
       {!isReadOnly && (
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-ide-text-secondary">FILES</span>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="text-xs text-ide-text-secondary font-medium">FILES</span>
           <div className="flex space-x-1">
             <Button
               variant="ghost"

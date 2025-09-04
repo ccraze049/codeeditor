@@ -155,29 +155,32 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       'react.d.ts'
     );
 
+    // Mobile detection for responsive editor settings
+    const isMobile = window.innerWidth < 768;
+    
     // Create new editor with enhanced settings
     const editor = monaco.editor.create(editorRef.current, {
       value: file?.content || '',
       language: getLanguageFromFileName(file?.name || ''),
       theme: 'codespace-dark',
-      fontSize: 14,
+      fontSize: isMobile ? 12 : 14,
       fontFamily: 'JetBrains Mono, Monaco, Consolas, monospace',
-      lineNumbers: 'on',
-      minimap: { enabled: true },
+      lineNumbers: isMobile ? 'off' : 'on',
+      minimap: { enabled: !isMobile },
       scrollBeyondLastLine: false,
       automaticLayout: true,
       readOnly: isReadOnly,
       wordWrap: 'on',
-      lineNumbersMinChars: 3,
-      glyphMargin: true,
-      folding: true,
+      lineNumbersMinChars: isMobile ? 2 : 3,
+      glyphMargin: !isMobile,
+      folding: !isMobile,
       renderLineHighlight: 'line',
       selectOnLineNumbers: true,
-      contextmenu: true,
-      mouseWheelZoom: true,
+      contextmenu: !isMobile,
+      mouseWheelZoom: !isMobile,
       cursorBlinking: 'blink',
       cursorStyle: 'line',
-      renderWhitespace: 'selection',
+      renderWhitespace: isMobile ? 'none' : 'selection',
       tabSize: 2,
       insertSpaces: true,
       // Enhanced IntelliSense and autocomplete settings

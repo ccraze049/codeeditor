@@ -323,9 +323,23 @@ export default function Editor() {
       </nav>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile Overlay */}
+        {isMobile && !isSidebarCollapsed && (
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50 z-20" 
+            onClick={() => setIsSidebarCollapsed(true)}
+          />
+        )}
+        
         {/* Sidebar */}
-        <div className={`${isSidebarCollapsed ? 'w-12' : isMobile ? 'w-full absolute z-10 h-full' : 'w-64'} bg-ide-bg-secondary border-r border-ide-border flex flex-col transition-all duration-300`}>
+        <div className={`${
+          isSidebarCollapsed 
+            ? 'w-12' 
+            : isMobile 
+              ? 'w-80 absolute left-0 top-0 z-30 h-full shadow-lg' 
+              : 'w-64'
+        } bg-ide-bg-secondary border-r border-ide-border flex flex-col transition-all duration-300`}>
           {!isSidebarCollapsed ? (
             <>
               <div className="p-3 border-b border-ide-border">
@@ -423,7 +437,7 @@ export default function Editor() {
         </div>
 
         {/* Editor Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           <EditorTabs
             files={projectFiles || []}
             openFileIds={openFiles}
@@ -443,11 +457,17 @@ export default function Editor() {
             </div>
 
             {isAIAssistantOpen && (
-              <AIAssistant
-                projectId={projectId!}
-                onClose={() => setIsAIAssistantOpen(false)}
-                activeFile={activeFile}
-              />
+              <div className={`${
+                isMobile 
+                  ? 'absolute right-0 top-0 z-40 h-full w-full bg-ide-bg-secondary shadow-lg' 
+                  : 'relative'
+              }`}>
+                <AIAssistant
+                  projectId={projectId!}
+                  onClose={() => setIsAIAssistantOpen(false)}
+                  activeFile={activeFile}
+                />
+              </div>
             )}
           </div>
 

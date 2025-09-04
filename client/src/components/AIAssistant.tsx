@@ -398,7 +398,7 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
   }, [messages]);
 
   return (
-    <div className="w-80 md:w-80 sm:w-full bg-ide-bg-secondary border-l border-ide-border flex flex-col h-full" data-testid="ai-assistant">
+    <div className="w-80 md:w-96 lg:w-80 sm:w-full bg-ide-bg-secondary border-l border-ide-border flex flex-col h-full" data-testid="ai-assistant">
       {/* Header */}
       <div className="p-3 border-b border-ide-border flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -522,9 +522,9 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
       </ScrollArea>
 
       {/* Quick Actions */}
-      <div className="p-3 border-t border-ide-border">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 space-y-2 sm:space-y-0">
-          <div className="flex flex-wrap space-x-1 sm:space-x-2 text-xs gap-y-1">
+      <div className="p-2 md:p-3 border-t border-ide-border">
+        <div className="flex flex-col items-start justify-between mb-3 space-y-2">
+          <div className="flex flex-wrap gap-1 text-xs">
             <Button
               size="sm"
               variant="outline"
@@ -563,8 +563,8 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask AI for help..."
-            className="flex-1 bg-ide-bg-tertiary border-ide-border text-sm h-8"
+            placeholder="AI से मदद मांगें..."
+            className="flex-1 bg-ide-bg-tertiary border-ide-border text-sm h-9 md:h-8"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
