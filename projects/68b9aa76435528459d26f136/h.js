@@ -1,1 +1,2 @@
-console.log("hi")
+const m = Date()
+console.log(m)
