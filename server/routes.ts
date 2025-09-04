@@ -1387,26 +1387,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sync files to disk before executing commands
       if (projectId) {
 
-        // Sync database files to disk before executing commands
-        try {
-          console.log(`Syncing project files to disk before command execution`);
-          const projectFiles = await mongoStorage.getProjectFiles(projectId);
-          
-          for (const file of projectFiles) {
-            if (!file.isFolder && file.content !== null) {
-              const filePath = path.join(workingDir, file.path);
-              const fileDir = path.dirname(filePath);
-              
-              // Ensure directory exists
-              await fs.mkdir(fileDir, { recursive: true });
-              
-              // Write file content to disk
-              await fs.writeFile(filePath, file.content || '', 'utf8');
+        // Only sync files for file-modifying commands, skip for simple commands
+        const needsFullSync = command.includes('npm') || command.includes('pip') || 
+                             command.includes('touch') || command.includes('mkdir') || 
+                             command.includes('cp') || command.includes('mv') || command.includes('rm');
+        
+        if (needsFullSync) {
+          try {
+            console.log(`Syncing project files to disk before command execution`);
+            const projectFiles = await mongoStorage.getProjectFiles(projectId);
+            
+            for (const file of projectFiles) {
+              if (!file.isFolder && file.content !== null) {
+                const filePath = path.join(workingDir, file.path);
+                const fileDir = path.dirname(filePath);
+                
+                // Ensure directory exists
+                await fs.mkdir(fileDir, { recursive: true });
+                
+                // Write file content to disk
+                await fs.writeFile(filePath, file.content || '', 'utf8');
+              }
             }
+            console.log(`Synced ${projectFiles.filter(f => !f.isFolder).length} files to disk`);
+          } catch (syncError) {
+            console.warn(`Failed to sync files to disk:`, syncError);
           }
-          console.log(`Synced ${projectFiles.filter(f => !f.isFolder).length} files to disk`);
-        } catch (syncError) {
-          console.warn(`Failed to sync files to disk:`, syncError);
+        } else {
+          console.log(`Skipping file sync for simple command: ${command}`);
         }
       }
 
@@ -1435,7 +1443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const child = spawn('/bin/bash', ['-c', command], {
         cwd: workingDir,
         env: commandEnv,
-        timeout: 120000, // 2 minute timeout for commands
+        timeout: 30000, // 30 second timeout for commands
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
