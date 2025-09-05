@@ -26,78 +26,56 @@ bot.catch((err, ctx) => {
   console.error('❌ Bot error:', err);
 });
 
-// Bot को launch करने का main function
+// Main function to start bot
 async function startBot() {
   try {
-    console.log("🔄 Bot को start कर रहे हैं...");
-    
-    // Bot launch करो
+    console.log("🔄 Starting Telegram Bot...");
     await bot.launch();
     console.log("✅ Bot चल रहा है...");
-    console.log("🔄 Bot continuously running... Press Ctrl+C to stop");
+    console.log("🔄 Bot running continuously... Use 'pkill -f node' to stop");
     
-    // Keep alive - हर 30 seconds में status दिखाओ
-    const keepAliveInterval = setInterval(() => {
-      console.log("💚 Bot is alive and running...", new Date().toLocaleTimeString());
+    // Keep alive interval
+    const aliveInterval = setInterval(() => {
+      console.log("💚 Bot is running...", new Date().toLocaleTimeString());
     }, 30000);
     
-    // Process को alive रखने के लिए
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-    
-    // अगर कोई input आए तो handle करो (लेकिन कुछ न करो, बस alive रखो)
-    process.stdin.on('data', () => {
-      // Do nothing, just keep process alive
-    });
-    
-    return keepAliveInterval;
-    
+    return aliveInterval;
   } catch (error) {
-    console.error("❌ Bot start करने में error:", error);
+    console.error("❌ Bot start error:", error);
     process.exit(1);
   }
 }
 
-// Graceful shutdown function
-function gracefulShutdown(signal) {
-  console.log(`\n🛑 ${signal} signal received. Bot को बंद कर रहे हैं...`);
+// Graceful shutdown
+function stopBot(signal) {
+  console.log(`\n🛑 ${signal} received. Stopping bot...`);
   bot.stop(signal);
-  console.log("👋 Bot successfully stopped!");
+  console.log("👋 Bot stopped successfully!");
   process.exit(0);
 }
 
-// Signal handlers
-process.once("SIGINT", () => gracefulShutdown("SIGINT"));
-process.once("SIGTERM", () => gracefulShutdown("SIGTERM"));
+// Multiple signal handlers for better control
+process.on("SIGINT", () => stopBot("SIGINT"));
+process.on("SIGTERM", () => stopBot("SIGTERM"));
+process.on("SIGHUP", () => stopBot("SIGHUP"));
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err);
-  gracefulShutdown("uncaughtException");
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  gracefulShutdown("unhandledRejection");
-});
-
-// Exit handler
-process.on('exit', (code) => {
-  console.log(`🔴 Process exiting with code: ${code}`);
-});
-
-// Start the bot
-startBot().then((interval) => {
-  console.log("🚀 Bot server started successfully!");
+// Start the bot and keep it alive
+startBot().then(() => {
+  console.log("🚀 Bot server started!");
   
-  // Keep the process running indefinitely
-  const infiniteLoop = () => {
-    setTimeout(() => {
-      infiniteLoop();
-    }, 1000000); // 1000 seconds - keeps running
-  };
+  // Keep process alive with stdin
+  process.stdin.resume();
+  process.stdin.setEncoding('utf8');
   
-  infiniteLoop();
+  // Listen for 'exit' command on stdin to allow manual stop
+  process.stdin.on('data', (input) => {
+    const command = input.toString().trim();
+    if (command === 'exit' || command === 'quit' || command === 'stop') {
+      console.log("📝 Manual stop command received...");
+      stopBot("MANUAL");
+    }
+  });
+  
 }).catch((error) => {
   console.error("💥 Failed to start bot:", error);
   process.exit(1);

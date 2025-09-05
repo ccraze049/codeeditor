@@ -1435,6 +1435,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Handle special commands for process control
+      if (command.trim() === 'stop-bot' || command.trim() === 'kill-bot' || command.trim() === 'killall node') {
+        try {
+          const killCommand = spawn('pkill', ['-f', 'node'], {
+            cwd: workingDir,
+            env: commandEnv
+          });
+          
+          killCommand.on('close', (code) => {
+            res.json({
+              output: '🛑 Bot processes stopped successfully!\n✅ All Node.js processes terminated.',
+              type: 'output',
+              exitCode: code,
+              command: command
+            });
+          });
+          
+          return;
+        } catch (error) {
+          res.json({
+            output: `❌ Error stopping bot: ${error.message}`,
+            type: 'error',
+            command: command
+          });
+          return;
+        }
+      }
+      
       // Track if this is an npm command that might modify files
       const isPackageModifyingCommand = command.includes('npm install') || 
         command.includes('npm uninstall') || 
