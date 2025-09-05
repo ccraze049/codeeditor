@@ -288,10 +288,10 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   return (
     <div className="flex flex-col h-full bg-ide-bg-primary" data-testid="terminal">
       {/* Terminal Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-ide-bg-secondary border-b border-ide-border">
-        <div className="flex items-center space-x-2">
-          <TerminalIcon className="h-4 w-4" />
-          <span className="text-sm font-medium">Terminal</span>
+      <div className="flex items-center justify-between px-2 md:px-3 py-1 md:py-2 bg-ide-bg-secondary border-b border-ide-border">
+        <div className="flex items-center space-x-1 md:space-x-2">
+          <TerminalIcon className="h-3 w-3 md:h-4 md:w-4" />
+          <span className="text-xs md:text-sm font-medium">Terminal</span>
         </div>
         
         <div className="flex items-center space-x-1">
@@ -361,12 +361,12 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       </div>
 
       {/* Terminal Content */}
-      <ScrollArea className="flex-1 p-3" ref={scrollAreaRef}>
-        <div className="font-mono text-sm space-y-1">
+      <ScrollArea className="flex-1 p-2 md:p-3" ref={scrollAreaRef}>
+        <div className="font-mono text-xs md:text-sm space-y-1">
           {lines.map((line) => (
             <div
               key={line.id}
-              className={`${getLineColor(line.type)} leading-relaxed`}
+              className={`${getLineColor(line.type)} leading-relaxed break-words overflow-wrap-anywhere`}
               data-testid={`terminal-line-${line.type}`}
             >
               {line.content}
@@ -374,16 +374,16 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
           ))}
           
           {/* Command Input Line */}
-          <div className="flex items-center space-x-2 mt-2">
-            <span className="text-ide-success">{currentWorkingDir}$</span>
+          <div className="flex items-center space-x-1 md:space-x-2 mt-2">
+            <span className="text-ide-success text-xs md:text-sm flex-shrink-0">{currentWorkingDir}$</span>
             <Input
               ref={inputRef}
               value={currentCommand}
               onChange={(e) => setCurrentCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isRunning}
-              className="flex-1 bg-transparent border-none p-0 font-mono text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0"
-              placeholder={isRunning ? "Command running..." : "Type a command..."}
+              className="flex-1 bg-transparent border-none p-0 font-mono text-xs md:text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+              placeholder={isRunning ? "Running..." : "Command..."}
               data-testid="input-terminal-command"
             />
             {isRunning && (
@@ -394,10 +394,11 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       </ScrollArea>
 
       {/* Terminal Status */}
-      <div className="px-3 py-1 bg-ide-bg-secondary border-t border-ide-border text-xs text-ide-text-secondary">
+      <div className="px-2 md:px-3 py-1 bg-ide-bg-secondary border-t border-ide-border text-xs text-ide-text-secondary">
         <div className="flex items-center justify-between">
           <span>Ready - {lines.length} lines</span>
-          <span>Use ↑/↓ for command history, Tab for completion</span>
+          <span className="hidden md:inline">Use ↑/↓ for command history, Tab for completion</span>
+          <span className="md:hidden">↑/↓ history</span>
         </div>
       </div>
     </div>
