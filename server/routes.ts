@@ -1461,6 +1461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle stop commands for bot processes with improved error handling
       if (command === 'stop' || command === 'stop-bot' || command === 'kill-bot') {
+        console.log(`Processing stop command: ${command}`);
         try {
           // Try multiple approaches to stop processes
           let killCommand;
@@ -1561,6 +1562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           return;
         } catch (error) {
+          console.error(`Stop command error: ${error.message}`, error);
           return res.json({
             output: `❌ Error executing stop command: ${error.message}`,
             type: 'error',
@@ -1894,7 +1896,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       console.error("Error executing terminal command:", error);
-      res.status(500).json({ message: "Failed to execute command" });
+      console.error("Command that failed:", command);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ message: "Failed to execute command", error: error.message });
     }
   });
 
