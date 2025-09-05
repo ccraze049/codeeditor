@@ -1436,11 +1436,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         command.includes('npm add') ||
         command.includes('npm remove');
 
-      // Setup proper command execution environment with cloud platform support
+      // Setup proper command execution environment with enhanced cloud platform support
       const commandEnv = {
         ...process.env,
         NODE_ENV: 'development',
-        PATH: `/usr/local/bin:/usr/bin:/bin:/opt/render/project/src/.venv/bin:/app/.venv/bin:/usr/local/python/bin:${process.env.PATH}`,
+        PATH: `/usr/local/bin:/usr/bin:/bin:/opt/render/project/src/.venv/bin:/app/.venv/bin:/usr/local/python/bin:${workingDir}/node_modules/.bin:${process.env.PATH}`,
         PWD: workingDir,
         HOME: process.env.HOME || '/home/runner',
         USER: process.env.USER || 'runner',
@@ -1448,8 +1448,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         PYTHONPATH: workingDir,
         PYTHONUNBUFFERED: '1',
         PYTHONDONTWRITEBYTECODE: '1',
-        // Cloud platform specific paths
-        PROJECT_ROOT: workingDir
+        // Cloud platform specific paths and Node.js module resolution
+        PROJECT_ROOT: workingDir,
+        NODE_PATH: `${workingDir}/node_modules:${process.env.NODE_PATH || ''}`,
+        // Fix for Render's absolute path issues
+        npm_config_prefix: workingDir,
+        npm_config_cache: `${workingDir}/.npm`
       };
 
       // Handle stop commands for all processes with improved error handling
@@ -1459,37 +1463,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Universal process stopping approach that works on all platforms
           let stoppedProcesses = 0;
           
-          // Try to find and stop various types of processes
+          // Enhanced process stopping for cloud platforms like Render
           const processPatterns = [
             'node.*index.js',
             'npm.*start',
-            'npm.*dev',
+            'npm.*dev', 
             'python.*main.py',
-            'node.*server'
+            'node.*server',
+            'telegraf',
+            'bot'
           ];
           
           for (const pattern of processPatterns) {
             try {
-              // Try pkill first (most platforms)
+              // Method 1: Try pkill (most reliable)
               try {
                 execSync('which pkill', { stdio: 'ignore' });
-                const killResult = execSync(`pkill -f "${pattern}"`, { stdio: 'pipe' });
+                execSync(`pkill -f "${pattern}"`, { stdio: 'ignore' });
                 stoppedProcesses++;
+                console.log(`Stopped processes matching: ${pattern}`);
               } catch {
-                // Fallback to ps + kill approach for broader compatibility
+                // Method 2: ps + kill (universal fallback)
                 try {
-                  const pids = execSync(`ps aux | grep "${pattern}" | grep -v grep | awk '{print $2}'`, { encoding: 'utf8' }).trim();
+                  const psCommand = `ps aux | grep "${pattern}" | grep -v grep | awk '{print $2}'`;
+                  const pids = execSync(psCommand, { encoding: 'utf8', timeout: 5000 }).trim();
                   
                   if (pids) {
-                    const pidList = pids.split('\n').filter(pid => pid.trim());
+                    const pidList = pids.split('\n').filter(pid => pid.trim() && !isNaN(parseInt(pid)));
                     if (pidList.length > 0) {
-                      execSync(`kill -9 ${pidList.join(' ')}`, { stdio: 'ignore' });
-                      stoppedProcesses += pidList.length;
+                      for (const pid of pidList) {
+                        try {
+                          execSync(`kill -9 ${pid}`, { stdio: 'ignore', timeout: 3000 });
+                          stoppedProcesses++;
+                        } catch {}
+                      }
+                      console.log(`Killed ${pidList.length} processes matching: ${pattern}`);
                     }
                   }
-                } catch {}
+                } catch (psError) {
+                  console.warn(`Failed to stop ${pattern}:`, psError);
+                }
               }
-            } catch {}
+            } catch (error) {
+              console.warn(`Error stopping ${pattern}:`, error);
+            }
           }
           
           // Return appropriate response based on stopped processes
@@ -1624,10 +1641,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isLongRunningCommand) {
         console.log(`Long-running command detected: ${command}`);
         
-        // Detach the process so it can run independently
-        child.unref();
+        // For Render and other cloud platforms, don't detach - handle properly
+        if (!isCloudDeployment) {
+          child.unref();
+        }
         
-        // Collect initial output for 2 seconds, then respond
+        // Collect initial output for 3 seconds, then respond
         let initialOutput = '';
         let initialError = '';
         
