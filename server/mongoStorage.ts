@@ -399,14 +399,20 @@ export class MongoStorage {
 
   async updateFile(id: string, data: Partial<IFile>): Promise<IFile | undefined> {
     try {
+      console.log(`\n🔄 MongoDB: Starting updateFile for ${id}`);
+      console.log(`🔄 MongoDB: Data keys:`, Object.keys(data));
+      
       // Update file size if content is being updated
       if (data.content !== undefined && data.content !== null) {
         data.size = data.content.length;
+        console.log(`🔄 MongoDB: Set file size to ${data.size}`);
       } else if (data.content === null) {
         data.size = 0;
+        console.log(`🔄 MongoDB: Set file size to 0 (null content)`);
       }
 
-      console.log(`Updating file ${id} with content length:`, data.content ? data.content.length : 'null/undefined');
+      console.log(`🔄 MongoDB: Calling findByIdAndUpdate for ${id}`);
+      console.log(`🔄 MongoDB: Content preview:`, data.content ? data.content.substring(0, 50) + '...' : 'null/undefined');
 
       const updatedFile = await File.findByIdAndUpdate(
         id,
@@ -415,17 +421,24 @@ export class MongoStorage {
       ).lean();
       
       if (updatedFile) {
-        console.log(`File ${id} updated successfully. New content length:`, updatedFile.content ? updatedFile.content.length : 'null');
+        console.log(`✅ MongoDB: File ${id} updated successfully!`);
+        console.log(`✅ MongoDB: New content length: ${updatedFile.content ? updatedFile.content.length : 'null'}`);
+        console.log(`✅ MongoDB: New size field: ${updatedFile.size}`);
+        console.log(`✅ MongoDB: UpdatedAt: ${updatedFile.updatedAt}`);
         return {
           ...updatedFile,
           id: updatedFile._id?.toString() // Add id field for compatibility
         };
       }
       
-      console.log(`Failed to update file ${id} - file not found in database`);
+      console.log(`❌ MongoDB: Failed to update file ${id} - file not found in database`);
       return undefined;
     } catch (error) {
-      console.error('Error updating file:', error);
+      console.error(`❌ MongoDB: Error updating file ${id}:`, error);
+      if (error instanceof Error) {
+        console.error(`❌ MongoDB: Error message:`, error.message);
+        console.error(`❌ MongoDB: Error stack:`, error.stack);
+      }
       return undefined;
     }
   }

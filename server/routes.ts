@@ -439,38 +439,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
       
-      console.log(`API: Updating file ${id} for user ${userId}`);
-      console.log(`API: Request body content length:`, req.body.content ? req.body.content.length : 'null/undefined');
+      console.log(`\n=== FILE UPDATE REQUEST ===`);
+      console.log(`File ID: ${id}`);
+      console.log(`User ID: ${userId}`);
+      console.log(`Request body keys:`, Object.keys(req.body));
+      console.log(`Content provided:`, req.body.content !== undefined);
+      console.log(`Content length:`, req.body.content ? req.body.content.length : 'null/undefined');
+      console.log(`Content preview:`, req.body.content ? req.body.content.substring(0, 100) + '...' : 'null');
       
       const file = await mongoStorage.getFile(id);
       
       if (!file) {
-        console.log(`API: File ${id} not found in database`);
+        console.log(`❌ File ${id} not found in database`);
         return res.status(404).json({ message: "File not found" });
       }
+      
+      console.log(`✅ File found: ${file.name}`);
+      console.log(`Current content length: ${file.content ? file.content.length : 'null'}`);
 
       // Check project access
       const project = await mongoStorage.getProject(file.projectId);
       const projectOwnerId = project?.ownerId?._id?.toString() || project?.ownerId?.toString() || project?.ownerId;
       if (!project || projectOwnerId !== userId) {
-        console.log(`API: Access denied for file ${id}. Project owner: ${projectOwnerId}, User: ${userId}`);
+        console.log(`❌ Access denied for file ${id}. Project owner: ${projectOwnerId}, User: ${userId}`);
         return res.status(403).json({ message: "Access denied" });
       }
+      
+      console.log(`✅ Access granted for project: ${project.name}`);
 
       const updateData = insertFileSchema.partial().parse(req.body);
-      console.log(`API: Parsed update data for file ${id}:`, { ...updateData, content: updateData.content ? `${updateData.content.length} chars` : 'null' });
+      console.log(`✅ Data parsed successfully`);
       
+      console.log(`🔄 Calling mongoStorage.updateFile...`);
       const updatedFile = await mongoStorage.updateFile(id, updateData);
       
       if (updatedFile) {
-        console.log(`API: File ${id} updated successfully`);
+        console.log(`✅ File ${id} updated successfully in MongoDB`);
+        console.log(`New content length: ${updatedFile.content ? updatedFile.content.length : 'null'}`);
+        console.log(`=== FILE UPDATE COMPLETE ===\n`);
         res.json(updatedFile);
       } else {
-        console.log(`API: Failed to update file ${id} - mongoStorage returned undefined`);
+        console.log(`❌ Failed to update file ${id} - mongoStorage returned undefined`);
+        console.log(`=== FILE UPDATE FAILED ===\n`);
         res.status(500).json({ message: "Failed to update file in database" });
       }
     } catch (error) {
-      console.error("Error updating file:", error);
+      console.error(`❌ Error updating file ${req.params.id}:`, error);
+      console.log(`=== FILE UPDATE ERROR ===\n`);
       res.status(500).json({ message: "Failed to update file" });
     }
   });
