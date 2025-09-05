@@ -23,35 +23,42 @@ bot.on("text", (ctx) => {
 
 // Error handling
 bot.catch((err, ctx) => {
-  console.error('Bot error:', err);
+  console.error('❌ Bot error:', err);
 });
 
-// Bot launch करो - async function के साथ
-async function startBot() {
-  try {
-    await bot.launch();
-    console.log("✅ Bot चल रहा है...");
-    console.log("🔄 Bot continuously running... Press Ctrl+C to stop");
-    
-    // Keep the process alive
-    process.stdin.resume();
-    
-  } catch (error) {
-    console.error("❌ Bot start करने में error:", error);
-    process.exit(1);
-  }
-}
+// Bot launch करो
+bot.launch().then(() => {
+  console.log("✅ Bot चल रहा है...");
+  console.log("🔄 Bot continuously running... Press Ctrl+C to stop");
+  
+  // Keep alive mechanism - हर 30 seconds में alive message
+  setInterval(() => {
+    console.log("💚 Bot is running...", new Date().toLocaleTimeString());
+  }, 30000);
+  
+}).catch((error) => {
+  console.error("❌ Bot start करने में error:", error);
+  process.exit(1);
+});
 
-// Graceful stop (Heroku/Render/Railway deploy में काम आता है)
+// Graceful stop
 process.once("SIGINT", () => {
-  console.log("🛑 Bot को बंद कर रहे हैं...");
+  console.log("\n🛑 Bot को बंद कर रहे हैं...");
   bot.stop("SIGINT");
+  process.exit(0);
 });
 
 process.once("SIGTERM", () => {
-  console.log("🛑 Bot को बंद कर रहे हैं...");
+  console.log("\n🛑 Bot को बंद कर रहे हैं...");
   bot.stop("SIGTERM");
+  process.exit(0);
 });
 
-// Bot start करो
-startBot();
+// Keep process alive
+process.stdin.resume();
+process.stdin.setEncoding('utf8');
+
+// Prevent the process from exiting
+process.on('exit', (code) => {
+  console.log(`🔴 Process exiting with code: ${code}`);
+});
