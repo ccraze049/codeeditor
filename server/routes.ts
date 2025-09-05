@@ -1528,7 +1528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send immediate response for long-running commands
         setTimeout(() => {
           res.json({ 
-            output: `🚀 Long-running process started: ${command}\n✅ Process is running in background...\n💡 Use Ctrl+C to stop the process when needed.`,
+            output: `🚀 Long-running process started: ${command}\n✅ Process is running in background...\n💡 Use 'stop' command to stop the process when needed.`,
             type: 'output',
             exitCode: null,
             isLongRunning: true,
