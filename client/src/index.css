@@ -222,12 +222,17 @@
     
     /* Increase terminal height for better visibility */
     [data-testid="terminal"] .flex-1 {
-      min-height: 300px !important;
+      min-height: 200px !important;
     }
     
     /* Terminal container height */
     .terminal-container {
-      min-height: 350px !important;
+      min-height: 220px !important;
+    }
+    
+    /* Bottom panel optimized height for desktop */
+    .h-64 {
+      height: 16rem !important; /* 256px - good balance for desktop */
     }
     
     /* Better spacing for desktop terminal */
