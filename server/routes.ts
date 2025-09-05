@@ -1404,36 +1404,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sync files to disk before executing commands
       if (projectId) {
 
-        // Sync files for all commands that might read or modify files
-        const needsFullSync = command.includes('npm') || command.includes('pip') || 
-                             command.includes('touch') || command.includes('mkdir') || 
-                             command.includes('cp') || command.includes('mv') || command.includes('rm') ||
-                             command.includes('node') || command.includes('python') || command.includes('java') ||
-                             command.includes('cat') || command.includes('ls');
+        // Only sync files for commands that absolutely need it (optimized for Render performance)
+        const needsFullSync = command.includes('npm install') || command.includes('npm uninstall') || 
+                             command.includes('node ') || command.includes('python ');
         
         if (needsFullSync) {
           try {
-            console.log(`Syncing project files to disk before command execution`);
+            console.log(`Quick sync for: ${command}`);
             const projectFiles = await mongoStorage.getProjectFiles(projectId);
             
-            for (const file of projectFiles) {
-              if (!file.isFolder && file.content !== null) {
-                const filePath = path.join(workingDir, file.path);
-                const fileDir = path.dirname(filePath);
-                
-                // Ensure directory exists
-                await fs.mkdir(fileDir, { recursive: true });
-                
-                // Write file content to disk
-                await fs.writeFile(filePath, file.content || '', 'utf8');
-              }
+            // Only sync essential files for performance
+            const essentialFiles = projectFiles.filter(file => 
+              !file.isFolder && file.content !== null && 
+              (file.name === 'package.json' || file.name === 'index.js' || file.name === 'main.py')
+            );
+            
+            for (const file of essentialFiles) {
+              const filePath = path.join(workingDir, file.path);
+              const fileDir = path.dirname(filePath);
+              
+              await fs.mkdir(fileDir, { recursive: true });
+              await fs.writeFile(filePath, file.content || '', 'utf8');
             }
-            console.log(`Synced ${projectFiles.filter(f => !f.isFolder).length} files to disk`);
+            console.log(`Quick synced ${essentialFiles.length} essential files`);
           } catch (syncError) {
-            console.warn(`Failed to sync files to disk:`, syncError);
+            console.warn(`Quick sync failed:`, syncError);
           }
         } else {
-          console.log(`Skipping file sync for simple command: ${command}`);
+          console.log(`Skipping sync for fast command: ${command}`);
         }
       }
 
@@ -1677,7 +1675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           child = spawn(baseCommand, args, {
             cwd: workingDir,
             env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
-            timeout: isLongRunningCommand ? 0 : 60000, // Longer timeout for npm operations
+            timeout: isLongRunningCommand ? 0 : 25000, // Reduced timeout for faster response
             stdio: ['pipe', 'pipe', 'pipe']
           });
         }
@@ -1700,7 +1698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         child = spawn(shell, shellArgs, {
           cwd: workingDir,
           env: commandEnv,
-          timeout: isLongRunningCommand ? 0 : 30000,
+          timeout: isLongRunningCommand ? 0 : 15000, // Faster timeout for local commands
           stdio: ['pipe', 'pipe', 'pipe']
         });
       }
@@ -1762,7 +1760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             command: command,
             processId: child.pid
           });
-        }, 2000);
+        }, 500); // Reduced from 2000ms to 500ms for faster response
         
         // Don't wait for close event for long-running processes
         return;
@@ -1802,23 +1800,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Additional sync for npm commands specifically
             if (isPackageModifyingCommand && code === 0) {
-              console.log('Package command detected, waiting and syncing node_modules...');
-              // Wait for npm to complete file operations
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              
-              // Check if node_modules exists and sync it
-              try {
-                await fs.access(path.join(workingDir, 'node_modules'));
-                console.log('Node_modules found, syncing...');
-                await fileSystemSync.syncProjectFiles({
-                  projectId,
-                  projectPath: workingDir,
-                  includeNodeModules: true,
-                  maxDepth: 2
-                });
-              } catch (nmError) {
-                console.log('Node_modules not accessible after npm command');
-              }
+              console.log('Package command completed - optimized for Render performance');
+              // Skip heavy node_modules sync for better performance on cloud platforms
+              // Dependencies will be available for next commands without full sync
             }
             
             console.log(`Project files sync completed`);
