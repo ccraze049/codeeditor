@@ -96,6 +96,27 @@
     .mobile-text {
       @apply text-sm;
     }
+    
+    /* Terminal specific mobile fixes */
+    [data-testid="terminal"] {
+      font-size: 10px !important;
+    }
+    
+    [data-testid="terminal"] .font-mono {
+      font-size: 10px !important;
+      line-height: 1.2 !important;
+    }
+    
+    [data-testid="terminal"] input {
+      font-size: 10px !important;
+    }
+    
+    /* Ensure text wraps properly in terminal */
+    [data-testid="terminal"] div {
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: pre-wrap !important;
+    }
   }
 }
 

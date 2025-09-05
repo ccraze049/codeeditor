@@ -361,12 +361,12 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       </div>
 
       {/* Terminal Content */}
-      <ScrollArea className="flex-1 p-2 md:p-3 overflow-x-auto" ref={scrollAreaRef}>
-        <div className="font-mono text-xs md:text-sm space-y-1 min-w-0">
+      <ScrollArea className="flex-1 p-1 md:p-3" ref={scrollAreaRef}>
+        <div className="font-mono text-xs md:text-sm space-y-1 w-full max-w-full">
           {lines.map((line) => (
             <div
               key={line.id}
-              className={`${getLineColor(line.type)} leading-relaxed break-all whitespace-pre-wrap`}
+              className={`${getLineColor(line.type)} leading-tight md:leading-relaxed break-words word-wrap overflow-hidden text-ellipsis`}
               data-testid={`terminal-line-${line.type}`}
             >
               {line.content}
@@ -374,16 +374,16 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
           ))}
           
           {/* Command Input Line */}
-          <div className="flex items-center space-x-1 md:space-x-2 mt-2">
-            <span className="text-ide-success text-xs md:text-sm flex-shrink-0">{currentWorkingDir}$</span>
+          <div className="flex items-center space-x-1 mt-2 w-full">
+            <span className="text-ide-success text-xs flex-shrink-0">$</span>
             <Input
               ref={inputRef}
               value={currentCommand}
               onChange={(e) => setCurrentCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isRunning}
-              className="flex-1 min-w-0 bg-transparent border-none p-0 font-mono text-xs md:text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0"
-              placeholder={isRunning ? "Running..." : "Command..."}
+              className="flex-1 w-full bg-transparent border-none p-0 font-mono text-xs text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+              placeholder={isRunning ? "Running..." : "Type command..."}
               data-testid="input-terminal-command"
             />
             {isRunning && (
