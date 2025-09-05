@@ -90,11 +90,38 @@
     }
     
     .mobile-padding {
-      @apply px-3 py-2;
+      @apply px-2 py-1;
     }
     
     .mobile-text {
-      @apply text-sm;
+      @apply text-xs;
+    }
+    
+    /* All input fields smaller on mobile */
+    input[type="text"], 
+    input[type="email"], 
+    input[type="password"], 
+    textarea {
+      font-size: 12px !important;
+      padding: 6px 8px !important;
+      min-height: 32px !important;
+    }
+    
+    /* Buttons smaller on mobile */
+    button {
+      font-size: 12px !important;
+      padding: 6px 12px !important;
+      min-height: 32px !important;
+    }
+    
+    /* Labels smaller on mobile */
+    label {
+      font-size: 11px !important;
+    }
+    
+    /* Form elements general mobile styling */
+    .space-y-4 > div {
+      margin-bottom: 12px !important;
     }
     
     /* Terminal specific mobile fixes */
@@ -108,7 +135,9 @@
     }
     
     [data-testid="terminal"] input {
-      font-size: 10px !important;
+      font-size: 8px !important;
+      padding: 2px 4px !important;
+      height: 22px !important;
     }
     
     /* Terminal tabs and buttons */
