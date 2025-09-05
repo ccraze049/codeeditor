@@ -1483,7 +1483,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error += data.toString();
       });
 
+      // For long-running commands, send immediate response and let them run
+      if (isLongRunningCommand) {
+        console.log(`Long-running command detected: ${command}`);
+        
+        // Send immediate response for long-running commands
+        setTimeout(() => {
+          res.json({ 
+            output: `🚀 Long-running process started: ${command}\n✅ Process is running in background...\n💡 Use Ctrl+C to stop the process when needed.`,
+            type: 'output',
+            exitCode: null,
+            isLongRunning: true,
+            command: command
+          });
+        }, 1000); // Wait a bit for initial output
+        
+        // Keep process running - don't wait for close event
+        return;
+      }
+
       child.on('close', async (code) => {
+        // Only handle close event for non-long-running commands
+        if (isLongRunningCommand) {
+          console.log(`Long-running command ${command} ended with code ${code}`);
+          return;
+        }
+        
         // Combine stderr and stdout for better output
         let result = '';
         if (output) result += output;
