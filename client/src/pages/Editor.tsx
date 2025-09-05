@@ -450,7 +450,7 @@ export default function Editor() {
 
           <div className="flex flex-1 overflow-hidden">
             <div className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-hidden">
+              <div className={`${isMobile && isBottomPanelOpen ? 'flex-[0.6]' : 'flex-1'} overflow-hidden`}>
                 <Monaco
                   onSave={() => setLastSaveTime(Date.now())}
                   file={activeFile}
@@ -461,7 +461,7 @@ export default function Editor() {
 
               {/* Bottom Panel */}
               {isBottomPanelOpen && (
-                <div className={`${isMobile ? 'h-72 sm:h-80' : 'h-80'} bg-ide-bg-secondary border-t border-ide-border flex flex-col flex-shrink-0`}>
+                <div className={`${isMobile ? 'h-80 min-h-80' : 'h-80'} bg-ide-bg-secondary border-t border-ide-border flex flex-col flex-shrink-0`}>
               <div className="h-10 flex items-center border-b border-ide-border">
                 <Button
                   variant={activeBottomTab === "terminal" ? "secondary" : "ghost"}
