@@ -166,6 +166,77 @@
   }
 }
 
+/* Desktop-specific optimizations for better font sizes and terminal height */
+@layer utilities {
+  /* Desktop font size overrides - applies when screen is wider than 768px */
+  @media (min-width: 769px) {
+    /* Monaco editor font size for desktop */
+    .monaco-editor {
+      font-size: 16px !important;
+    }
+    
+    /* Terminal font sizes for desktop */
+    [data-testid="terminal"] {
+      font-size: 14px !important;
+    }
+    
+    [data-testid="terminal"] .font-mono {
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+    }
+    
+    [data-testid="terminal"] input {
+      font-size: 14px !important;
+    }
+    
+    /* Terminal tabs and buttons for desktop */
+    [data-testid^="tab-"] {
+      font-size: 13px !important;
+      padding: 6px 12px !important;
+    }
+    
+    [data-testid^="button-"] {
+      font-size: 13px !important;
+    }
+    
+    /* Terminal header text for desktop */
+    [data-testid="terminal"] .text-xs {
+      font-size: 12px !important;
+    }
+    
+    [data-testid="terminal"] .text-sm {
+      font-size: 14px !important;
+    }
+    
+    /* Bottom panel tabs for desktop */
+    .px-4.py-2.text-sm {
+      font-size: 14px !important;
+      padding: 8px 16px !important;
+    }
+    
+    /* Output and Debug console for desktop */
+    .font-mono {
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+    }
+    
+    /* Increase terminal height for better visibility */
+    [data-testid="terminal"] .flex-1 {
+      min-height: 300px !important;
+    }
+    
+    /* Terminal container height */
+    .terminal-container {
+      min-height: 350px !important;
+    }
+    
+    /* Better spacing for desktop terminal */
+    [data-testid="terminal"] .space-y-1 > div {
+      margin-bottom: 4px !important;
+    }
+  }
+}
+
 :root {
   --background: hsl(222.2 84% 4.9%);
   --foreground: hsl(210 40% 98%);

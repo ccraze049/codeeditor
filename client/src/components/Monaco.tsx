@@ -178,7 +178,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       value: file?.content || '',
       language: getLanguageFromFileName(file?.name || ''),
       theme: 'codespace-dark',
-      fontSize: isMobile ? 12 : 14,
+      fontSize: isMobile ? 12 : 16,
       fontFamily: 'JetBrains Mono, Monaco, Consolas, monospace',
       lineNumbers: isMobile ? 'off' : 'on',
       minimap: { enabled: !isMobile },
