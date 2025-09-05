@@ -1509,43 +1509,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         command.includes('bot') ||
         command.toLowerCase().includes('server');
       
-      // Use cross-platform shell execution - try bash first, fallback to sh or cmd
-      let shell: string;
-      let shellArgs: string[];
+      // Cloud platform compatible execution
+      console.log(`Executing command: ${command} in ${workingDir}`);
       
-      try {
-        // Try to detect available shell - for cloud platforms like Render
-        if (process.platform === 'win32') {
-          shell = 'cmd';
-          shellArgs = ['/c', command];
-        } else {
-          // For Unix-like systems, try sh first (more widely available than bash)
-          shell = 'sh';
-          shellArgs = ['-c', command];
-          
-          // Check if bash is available for better compatibility
+      // Check if running in production/cloud environment
+      const isCloudDeployment = process.env.NODE_ENV === 'production' || 
+                               process.env.RENDER || 
+                               process.env.RAILWAY_ENVIRONMENT || 
+                               process.env.HEROKU_APP_NAME;
+      
+      let child;
+      
+      if (isCloudDeployment) {
+        // For cloud platforms, use direct command execution when possible
+        const commandParts = command.trim().split(' ');
+        let baseCommand = commandParts[0];
+        let args = commandParts.slice(1);
+        
+        // Special handling for npm commands on cloud platforms
+        if (baseCommand === 'npm') {
+          // Use npx or find npm binary
           try {
-            require('child_process').execSync('which bash', { stdio: 'ignore' });
-            shell = 'bash';
-            shellArgs = ['-c', command];
+            require('child_process').execSync('which npm', { stdio: 'ignore' });
           } catch {
-            // bash not available, stick with sh
+            // Try alternative npm paths
+            const npmPaths = ['/usr/local/bin/npm', '/usr/bin/npm', '/app/.npm/bin/npm'];
+            let npmFound = false;
+            for (const npmPath of npmPaths) {
+              try {
+                require('fs').accessSync(npmPath);
+                baseCommand = npmPath;
+                npmFound = true;
+                break;
+              } catch {}
+            }
+            if (!npmFound) {
+              return res.json({
+                output: '❌ npm not found on this cloud platform. Try using: node, ls, pwd, cat commands instead.',
+                type: 'error'
+              });
+            }
           }
         }
-      } catch (error) {
-        // Fallback to sh if detection fails
-        shell = 'sh';
-        shellArgs = ['-c', command];
+        
+        console.log(`Cloud deployment detected, using direct execution: ${baseCommand} with args:`, args);
+        
+        child = spawn(baseCommand, args, {
+          cwd: workingDir,
+          env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
+          timeout: isLongRunningCommand ? 0 : 60000, // Longer timeout for npm operations
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+      } else {
+        // For local development, use shell execution
+        let shell = 'sh';
+        let shellArgs = ['-c', command];
+        
+        try {
+          // Check if bash is available for better compatibility
+          require('child_process').execSync('which bash', { stdio: 'ignore' });
+          shell = 'bash';
+        } catch {
+          // bash not available, stick with sh
+        }
+        
+        console.log(`Local development, using shell: ${shell} with args:`, shellArgs);
+        
+        child = spawn(shell, shellArgs, {
+          cwd: workingDir,
+          env: commandEnv,
+          timeout: isLongRunningCommand ? 0 : 30000,
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
       }
-
-      console.log(`Using shell: ${shell} with args:`, shellArgs);
-
-      const child = spawn(shell, shellArgs, {
-        cwd: workingDir,
-        env: commandEnv,
-        timeout: isLongRunningCommand ? 0 : 30000, // No timeout for long-running processes, 30s for others
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
 
       let output = '';
       let error = '';
