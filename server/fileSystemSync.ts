@@ -31,9 +31,8 @@ export class FileSystemSync {
     '.env.local', 
     '.DS_Store',
     'Thumbs.db',
-    '*.log',
-    'dist',
-    'build'
+    '*.log'
+    // Removed 'dist' and 'build' to ensure build artifacts are preserved
   ];
 
   /**
@@ -164,9 +163,9 @@ export class FileSystemSync {
           continue;
         }
 
-        // Handle node_modules specially
+        // Handle node_modules specially for better persistence
         if (entry.name === 'node_modules') {
-          // Always show node_modules folder if it exists, regardless of includeNodeModules flag
+          // Always include node_modules folder for proper dependency tracking
           files.push({
             projectId,
             name: entry.name,

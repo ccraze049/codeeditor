@@ -383,22 +383,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Perform filesystem sync if requested or if project has few files
+      // Perform filesystem sync - always sync for better data persistence
       const currentFiles = await mongoStorage.getProjectFiles(projectId);
       
-      if (sync === 'true' || currentFiles.length <= 3) {
-        try {
-          const projectPath = path.join(process.cwd(), 'projects', projectId);
-          await fileSystemSync.syncProjectFiles({
-            projectId,
-            projectPath,
-            includeNodeModules: true,
-            maxDepth: 8
-          });
-          console.log(`Filesystem sync completed for project ${projectId}`);
-        } catch (syncError) {
-          console.warn(`Filesystem sync failed for project ${projectId}:`, syncError);
-        }
+      // Always sync to ensure data consistency and persistence
+      try {
+        const projectPath = path.join(process.cwd(), 'projects', projectId);
+        await fileSystemSync.syncProjectFiles({
+          projectId,
+          projectPath,
+          includeNodeModules: true,
+          maxDepth: 10 // Increased depth for better coverage
+        });
+        console.log(`Filesystem sync completed for project ${projectId}`);
+      } catch (syncError) {
+        console.warn(`Filesystem sync failed for project ${projectId}:`, syncError);
+        // Continue with existing files even if sync fails
       }
 
       // Get updated files list
@@ -1403,35 +1403,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Sync files to disk before executing commands
       if (projectId) {
-
-        // Only sync files for commands that absolutely need it (optimized for Render performance)
-        const needsFullSync = command.includes('npm install') || command.includes('npm uninstall') || 
-                             command.includes('node ') || command.includes('python ');
-        
-        if (needsFullSync) {
-          try {
-            console.log(`Quick sync for: ${command}`);
-            const projectFiles = await mongoStorage.getProjectFiles(projectId);
+        // Always sync all project files for proper data persistence
+        // This ensures that data is properly preserved across refreshes
+        try {
+          console.log(`Syncing all files for: ${command}`);
+          const projectFiles = await mongoStorage.getProjectFiles(projectId);
+          
+          // Sync all non-folder files for better data persistence
+          const filesToSync = projectFiles.filter(file => 
+            !file.isFolder && file.content !== null
+          );
+          
+          for (const file of filesToSync) {
+            const filePath = path.join(workingDir, file.path);
+            const fileDir = path.dirname(filePath);
             
-            // Only sync essential files for performance
-            const essentialFiles = projectFiles.filter(file => 
-              !file.isFolder && file.content !== null && 
-              (file.name === 'package.json' || file.name === 'index.js' || file.name === 'main.py')
-            );
-            
-            for (const file of essentialFiles) {
-              const filePath = path.join(workingDir, file.path);
-              const fileDir = path.dirname(filePath);
-              
-              await fs.mkdir(fileDir, { recursive: true });
-              await fs.writeFile(filePath, file.content || '', 'utf8');
-            }
-            console.log(`Quick synced ${essentialFiles.length} essential files`);
-          } catch (syncError) {
-            console.warn(`Quick sync failed:`, syncError);
+            await fs.mkdir(fileDir, { recursive: true });
+            await fs.writeFile(filePath, file.content || '', 'utf8');
           }
-        } else {
-          console.log(`Skipping sync for fast command: ${command}`);
+          console.log(`Synced ${filesToSync.length} files to filesystem`);
+        } catch (syncError) {
+          console.warn(`File sync failed:`, syncError);
+          // Continue execution even if sync fails
         }
       }
 
@@ -1459,105 +1452,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         PROJECT_ROOT: workingDir
       };
 
-      // Handle stop commands for bot processes with improved error handling
+      // Handle stop commands for all processes with improved error handling
       if (command === 'stop' || command === 'stop-bot' || command === 'kill-bot') {
         console.log(`Processing stop command: ${command}`);
         try {
-          // Try multiple approaches to stop processes
-          let killCommand;
+          // Universal process stopping approach that works on all platforms
+          let stoppedProcesses = 0;
           
-          // First try pkill (most reliable)
-          try {
-            execSync('which pkill', { stdio: 'ignore' });
-            killCommand = spawn('pkill', ['-f', 'node.*index.js'], {
-              cwd: workingDir,
-              env: commandEnv,
-              timeout: 10000
-            });
-          } catch {
-            // Fallback to ps + kill approach
+          // Try to find and stop various types of processes
+          const processPatterns = [
+            'node.*index.js',
+            'npm.*start',
+            'npm.*dev',
+            'python.*main.py',
+            'node.*server'
+          ];
+          
+          for (const pattern of processPatterns) {
             try {
-              const pids = execSync('ps aux | grep "node.*index.js" | grep -v grep | awk \'{print $2}\'', { encoding: 'utf8' }).trim();
-              
-              if (pids) {
-                const pidList = pids.split('\n').filter(pid => pid.trim());
-                if (pidList.length > 0) {
-                  execSync(`kill -9 ${pidList.join(' ')}`, { stdio: 'ignore' });
-                  return res.json({
-                    output: `🛑 Stopped ${pidList.length} process(es) successfully!\n✅ All bot processes terminated using kill command.`,
-                    type: 'output',
-                    command: command
-                  });
-                } else {
-                  return res.json({
-                    output: '📋 No running bot processes found to stop.',
-                    type: 'output',
-                    command: command
-                  });
-                }
-              } else {
-                return res.json({
-                  output: '📋 No running bot processes found to stop.',
-                  type: 'output',
-                  command: command
-                });
+              // Try pkill first (most platforms)
+              try {
+                execSync('which pkill', { stdio: 'ignore' });
+                const killResult = execSync(`pkill -f "${pattern}"`, { stdio: 'pipe' });
+                stoppedProcesses++;
+              } catch {
+                // Fallback to ps + kill approach for broader compatibility
+                try {
+                  const pids = execSync(`ps aux | grep "${pattern}" | grep -v grep | awk '{print $2}'`, { encoding: 'utf8' }).trim();
+                  
+                  if (pids) {
+                    const pidList = pids.split('\n').filter(pid => pid.trim());
+                    if (pidList.length > 0) {
+                      execSync(`kill -9 ${pidList.join(' ')}`, { stdio: 'ignore' });
+                      stoppedProcesses += pidList.length;
+                    }
+                  }
+                } catch {}
               }
-            } catch (fallbackError) {
-              return res.json({
-                output: `⚠️ Stop command completed but couldn't verify processes.\nReason: ${fallbackError.message}`,
-                type: 'output',
-                command: command
-              });
-            }
+            } catch {}
           }
           
-          // If pkill is available, handle its response
-          if (killCommand) {
-            let hasResponded = false;
-            
-            killCommand.on('close', (code) => {
-              if (!hasResponded) {
-                hasResponded = true;
-                if (code === 0) {
-                  res.json({
-                    output: '🛑 Bot processes stopped successfully!\n✅ All Telegram bot processes terminated.',
-                    type: 'output',
-                    exitCode: code,
-                    command: command
-                  });
-                } else {
-                  res.json({
-                    output: '📋 No running bot processes found to stop.',
-                    type: 'output',
-                    exitCode: code,
-                    command: command
-                  });
-                }
-              }
+          // Return appropriate response based on stopped processes
+          if (stoppedProcesses > 0) {
+            return res.json({
+              output: `🛑 Successfully stopped ${stoppedProcesses} process(es)!\n✅ All server processes terminated.`,
+              type: 'output',
+              command: command
             });
-            
-            killCommand.on('error', (err) => {
-              if (!hasResponded) {
-                hasResponded = true;
-                res.json({
-                  output: `❌ Error stopping bot: ${err.message}\nTry: ps aux | grep node`,
-                  type: 'error',
-                  command: command
-                });
-              }
+          } else {
+            return res.json({
+              output: '📋 No running processes found to stop.',
+              type: 'output',
+              command: command
             });
-            
-            // Timeout fallback
-            setTimeout(() => {
-              if (!hasResponded) {
-                hasResponded = true;
-                res.json({
-                  output: '⚠️ Stop command timeout - processes may have been stopped.',
-                  type: 'output',
-                  command: command
-                });
-              }
-            }, 5000);
           }
           
           return;
@@ -1587,13 +1534,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Cloud platform compatible execution
       console.log(`Executing command: ${command} in ${workingDir}`);
       
-      // Check if running in production/cloud environment (but not Replit)
-      const isCloudDeployment = (process.env.NODE_ENV === 'production' || 
+      // Check if running in production/cloud environment (including Render)
+      const isCloudDeployment = process.env.NODE_ENV === 'production' || 
                                process.env.RENDER || 
                                process.env.RAILWAY_ENVIRONMENT || 
-                               process.env.HEROKU_APP_NAME) && 
-                               !process.env.REPLIT_DB_URL && 
-                               !process.env.REPL_ID;
+                               process.env.HEROKU_APP_NAME || 
+                               process.env.VERCEL || 
+                               process.env.NETLIFY;
       
       let child: any;
       
@@ -1605,66 +1552,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Special handling for npm commands on cloud platforms
         if (baseCommand === 'npm') {
-          // Enhanced npm detection for various environments including Replit
+          // Simplified npm detection - let the system handle PATH resolution
           try {
             execSync('which npm', { stdio: 'ignore' });
+            // npm is in PATH, proceed with direct execution
           } catch {
-            // Try extensive alternative npm paths including Replit and Nix environments
-            const npmPaths = [
-              '/usr/local/bin/npm',
-              '/usr/bin/npm', 
-              '/app/.npm/bin/npm',
-              '/nix/store/*/bin/npm',
-              process.env.HOME + '/.npm-global/bin/npm',
-              '/opt/nodejs/bin/npm',
-              '/usr/local/nodejs/bin/npm'
-            ];
+            // npm not in PATH, fall back to shell execution
+            console.log('npm not found in PATH, using shell execution');
+            const shell = process.platform === 'win32' ? 'cmd' : 'sh';
+            const shellArgs = process.platform === 'win32' ? ['/c', command] : ['-c', command];
             
-            let npmFound = false;
+            child = spawn(shell, shellArgs, {
+              cwd: workingDir,
+              env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
+              timeout: isLongRunningCommand ? 0 : 60000,
+              stdio: ['pipe', 'pipe', 'pipe']
+            });
             
-            // First try to find npm using glob patterns for Nix store
-            try {
-              const npmPath = execSync('find /nix/store -name npm -type f -executable 2>/dev/null | head -1', { encoding: 'utf8' }).trim();
-              if (npmPath) {
-                baseCommand = npmPath;
-                npmFound = true;
-              }
-            } catch {}
-            
-            // If not found, try standard paths
-            if (!npmFound) {
-              for (const npmPath of npmPaths) {
-                try {
-                  if (npmPath.includes('*')) {
-                    // Skip wildcard paths in this simple check
-                    continue;
-                  }
-                  require('fs').accessSync(npmPath);
-                  baseCommand = npmPath;
-                  npmFound = true;
-                  break;
-                } catch {}
-              }
-            }
-            
-            // Final fallback: use shell execution for npm commands
-            if (!npmFound) {
-              console.log('npm not found in standard paths, falling back to shell execution');
-              // Instead of blocking, fall back to shell execution
-              const shell = 'sh';
-              const shellArgs = ['-c', command];
-              
-              child = spawn(shell, shellArgs, {
-                cwd: workingDir,
-                env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
-                timeout: isLongRunningCommand ? 0 : 60000,
-                stdio: ['pipe', 'pipe', 'pipe']
-              });
-              
-              // Skip the direct execution and jump to output handling
-              npmFound = true; // Set to true to continue execution
-              baseCommand = null; // Mark as shell execution
-            }
+            // Mark as shell execution to skip direct execution
+            baseCommand = null;
           }
         }
         
@@ -1675,11 +1581,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           child = spawn(baseCommand, args, {
             cwd: workingDir,
             env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
-            timeout: isLongRunningCommand ? 0 : 25000, // Reduced timeout for faster response
+            timeout: isLongRunningCommand ? 0 : 30000, // Adequate timeout for cloud platforms
             stdio: ['pipe', 'pipe', 'pipe']
           });
         }
-        // If baseCommand is null, child was already created in the npm fallback section
+        // If baseCommand is null, child was already created in fallback section
       } else {
         // For local development, use shell execution
         let shell = 'sh';
