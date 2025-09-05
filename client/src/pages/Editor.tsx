@@ -461,7 +461,7 @@ export default function Editor() {
 
               {/* Bottom Panel */}
               {isBottomPanelOpen && (
-                <div className="h-80 bg-ide-bg-secondary border-t border-ide-border flex flex-col flex-shrink-0">
+                <div className={`${isMobile ? 'h-64' : 'h-80'} bg-ide-bg-secondary border-t border-ide-border flex flex-col flex-shrink-0`}>
               <div className="h-10 flex items-center border-b border-ide-border">
                 <Button
                   variant={activeBottomTab === "terminal" ? "secondary" : "ghost"}
