@@ -286,7 +286,7 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-ide-bg-primary" data-testid="terminal">
+    <div className="flex flex-col h-full bg-ide-bg-primary overflow-hidden" data-testid="terminal">
       {/* Terminal Header */}
       <div className="flex items-center justify-between px-2 md:px-3 py-1 md:py-2 bg-ide-bg-secondary border-b border-ide-border">
         <div className="flex items-center space-x-1 md:space-x-2">
@@ -361,12 +361,12 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       </div>
 
       {/* Terminal Content */}
-      <ScrollArea className="flex-1 p-2 md:p-3" ref={scrollAreaRef}>
-        <div className="font-mono text-xs md:text-sm space-y-1">
+      <ScrollArea className="flex-1 p-2 md:p-3 overflow-x-auto" ref={scrollAreaRef}>
+        <div className="font-mono text-xs md:text-sm space-y-1 min-w-0">
           {lines.map((line) => (
             <div
               key={line.id}
-              className={`${getLineColor(line.type)} leading-relaxed break-words overflow-wrap-anywhere`}
+              className={`${getLineColor(line.type)} leading-relaxed break-all whitespace-pre-wrap`}
               data-testid={`terminal-line-${line.type}`}
             >
               {line.content}
@@ -382,7 +382,7 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
               onChange={(e) => setCurrentCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isRunning}
-              className="flex-1 bg-transparent border-none p-0 font-mono text-xs md:text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="flex-1 min-w-0 bg-transparent border-none p-0 font-mono text-xs md:text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder={isRunning ? "Running..." : "Command..."}
               data-testid="input-terminal-command"
             />
