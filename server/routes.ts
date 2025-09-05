@@ -1594,7 +1594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                !process.env.REPLIT_DB_URL && 
                                !process.env.REPL_ID;
       
-      let child;
+      let child: any;
       
       if (isCloudDeployment) {
         // For cloud platforms, use direct command execution when possible
@@ -1821,11 +1821,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      child.on('error', (err) => {
-        console.error(`Command execution error for '${command}':`, err);
-        
-        // If shell execution fails, try direct command execution for simple commands
-        if (err.code === 'ENOENT' && !command.includes('&&') && !command.includes('||') && !command.includes('|')) {
+      // Ensure child process exists before adding listeners
+      if (child) {
+        child.on('error', (err: any) => {
+          console.error(`Command execution error for '${command}':`, err);
+          
+          // If shell execution fails, try direct command execution for simple commands
+          if (err.code === 'ENOENT' && !command.includes('&&') && !command.includes('||') && !command.includes('|')) {
           const cmdParts = command.trim().split(' ');
           const baseCmd = cmdParts[0];
           const args = cmdParts.slice(1);
@@ -1879,11 +1881,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        res.json({ 
-          output: `❌ Shell execution failed: ${err.message}\n💡 This might be due to platform restrictions. Try using direct commands instead of shell operators.\n\n🔧 Available commands: ${allowedCommands.join(', ')}`,
+          res.json({ 
+            output: `❌ Shell execution failed: ${err.message}\n💡 This might be due to platform restrictions. Try using direct commands instead of shell operators.\n\n🔧 Available commands: ${allowedCommands.join(', ')}`,
+            type: 'error'
+          });
+        });
+      } else {
+        // If child process wasn't created, return error immediately
+        return res.json({
+          output: `❌ Failed to initialize command execution for: ${command}\n💡 Please check the command syntax and try again.\n\n🔧 Available commands: ${allowedCommands.join(', ')}`,
           type: 'error'
         });
-      });
+      }
       
     } catch (error) {
       console.error("Error executing terminal command:", error);
