@@ -1512,11 +1512,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Cloud platform compatible execution
       console.log(`Executing command: ${command} in ${workingDir}`);
       
-      // Check if running in production/cloud environment
-      const isCloudDeployment = process.env.NODE_ENV === 'production' || 
+      // Check if running in production/cloud environment (but not Replit)
+      const isCloudDeployment = (process.env.NODE_ENV === 'production' || 
                                process.env.RENDER || 
                                process.env.RAILWAY_ENVIRONMENT || 
-                               process.env.HEROKU_APP_NAME;
+                               process.env.HEROKU_APP_NAME) && 
+                               !process.env.REPLIT_DB_URL && 
+                               !process.env.REPL_ID;
       
       let child;
       
@@ -1528,38 +1530,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Special handling for npm commands on cloud platforms
         if (baseCommand === 'npm') {
-          // Use npx or find npm binary
+          // Enhanced npm detection for various environments including Replit
           try {
             require('child_process').execSync('which npm', { stdio: 'ignore' });
           } catch {
-            // Try alternative npm paths
-            const npmPaths = ['/usr/local/bin/npm', '/usr/bin/npm', '/app/.npm/bin/npm'];
+            // Try extensive alternative npm paths including Replit and Nix environments
+            const npmPaths = [
+              '/usr/local/bin/npm',
+              '/usr/bin/npm', 
+              '/app/.npm/bin/npm',
+              '/nix/store/*/bin/npm',
+              process.env.HOME + '/.npm-global/bin/npm',
+              '/opt/nodejs/bin/npm',
+              '/usr/local/nodejs/bin/npm'
+            ];
+            
             let npmFound = false;
-            for (const npmPath of npmPaths) {
-              try {
-                require('fs').accessSync(npmPath);
+            
+            // First try to find npm using glob patterns for Nix store
+            try {
+              const { execSync } = require('child_process');
+              const npmPath = execSync('find /nix/store -name npm -type f -executable 2>/dev/null | head -1', { encoding: 'utf8' }).trim();
+              if (npmPath) {
                 baseCommand = npmPath;
                 npmFound = true;
-                break;
-              } catch {}
-            }
+              }
+            } catch {}
+            
+            // If not found, try standard paths
             if (!npmFound) {
-              return res.json({
-                output: '❌ npm not found on this cloud platform. Try using: node, ls, pwd, cat commands instead.',
-                type: 'error'
+              for (const npmPath of npmPaths) {
+                try {
+                  if (npmPath.includes('*')) {
+                    // Skip wildcard paths in this simple check
+                    continue;
+                  }
+                  require('fs').accessSync(npmPath);
+                  baseCommand = npmPath;
+                  npmFound = true;
+                  break;
+                } catch {}
+              }
+            }
+            
+            // Final fallback: use shell execution for npm commands
+            if (!npmFound) {
+              console.log('npm not found in standard paths, falling back to shell execution');
+              // Instead of blocking, fall back to shell execution
+              const shell = 'sh';
+              const shellArgs = ['-c', command];
+              
+              child = spawn(shell, shellArgs, {
+                cwd: workingDir,
+                env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
+                timeout: isLongRunningCommand ? 0 : 60000,
+                stdio: ['pipe', 'pipe', 'pipe']
               });
+              
+              // Skip the direct execution and jump to output handling
+              npmFound = true; // Set to true to continue execution
+              baseCommand = null; // Mark as shell execution
             }
           }
         }
         
-        console.log(`Cloud deployment detected, using direct execution: ${baseCommand} with args:`, args);
-        
-        child = spawn(baseCommand, args, {
-          cwd: workingDir,
-          env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
-          timeout: isLongRunningCommand ? 0 : 60000, // Longer timeout for npm operations
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
+        // Only spawn if we have a valid baseCommand (not using shell fallback)
+        if (baseCommand) {
+          console.log(`Cloud deployment detected, using direct execution: ${baseCommand} with args:`, args);
+          
+          child = spawn(baseCommand, args, {
+            cwd: workingDir,
+            env: { ...commandEnv, NPM_CONFIG_FUND: 'false', NPM_CONFIG_UPDATE_NOTIFIER: 'false' },
+            timeout: isLongRunningCommand ? 0 : 60000, // Longer timeout for npm operations
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
+        }
+        // If baseCommand is null, child was already created in the npm fallback section
       } else {
         // For local development, use shell execution
         let shell = 'sh';
