@@ -1286,7 +1286,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'django-admin', 'flask', 'gunicorn', 'uvicorn', 'celery',
         'jupyter', 'ipython', 'conda', 'mamba', 'pdm', 'setuptools',
         'wheel', 'twine', 'pydoc', 'python-config', 'pyvenv',
-        'javac', 'java', 'gcc', 'g++', 'make', 'cmake', 'cargo', 'rustc'
+        'javac', 'java', 'gcc', 'g++', 'make', 'cmake', 'cargo', 'rustc',
+        'stop', 'stop-bot', 'kill-bot', 'killall', 'pkill'
       ];
       
       // For shell commands with &&, validate each part
@@ -1316,6 +1317,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           output: `Available commands:\n${allowedCommands.map(cmd => `  ${cmd}`).join('\n')}\n\nNote: Commands are executed in a secure sandbox environment.`,
           type: 'output'
         });
+      }
+      
+      // Handle stop commands for bot processes
+      if (command === 'stop' || command === 'stop-bot' || command === 'kill-bot') {
+        try {
+          const killCommand = spawn('pkill', ['-f', 'node.*index.js'], {
+            cwd: workingDir,
+            env: commandEnv
+          });
+          
+          killCommand.on('close', (code) => {
+            res.json({
+              output: '🛑 Bot processes stopped successfully!\n✅ All Telegram bot processes terminated.',
+              type: 'output',
+              exitCode: code,
+              command: command
+            });
+          });
+          
+          killCommand.on('error', (err) => {
+            res.json({
+              output: `❌ Error stopping bot: ${err.message}`,
+              type: 'error',
+              command: command
+            });
+          });
+          
+          return;
+        } catch (error) {
+          return res.json({
+            output: `❌ Error stopping bot: ${error.message}`,
+            type: 'error',
+            command: command
+          });
+        }
       }
 
       // Determine working directory - use stored session directory or default
@@ -1435,33 +1471,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Handle special commands for process control
-      if (command.trim() === 'stop-bot' || command.trim() === 'kill-bot' || command.trim() === 'killall node') {
-        try {
-          const killCommand = spawn('pkill', ['-f', 'node'], {
-            cwd: workingDir,
-            env: commandEnv
-          });
-          
-          killCommand.on('close', (code) => {
-            res.json({
-              output: '🛑 Bot processes stopped successfully!\n✅ All Node.js processes terminated.',
-              type: 'output',
-              exitCode: code,
-              command: command
-            });
-          });
-          
-          return;
-        } catch (error) {
-          res.json({
-            output: `❌ Error stopping bot: ${error.message}`,
-            type: 'error',
-            command: command
-          });
-          return;
-        }
-      }
       
       // Track if this is an npm command that might modify files
       const isPackageModifyingCommand = command.includes('npm install') || 
