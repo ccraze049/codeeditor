@@ -400,16 +400,30 @@ export class MongoStorage {
   async updateFile(id: string, data: Partial<IFile>): Promise<IFile | undefined> {
     try {
       // Update file size if content is being updated
-      if (data.content !== undefined) {
+      if (data.content !== undefined && data.content !== null) {
         data.size = data.content.length;
+      } else if (data.content === null) {
+        data.size = 0;
       }
+
+      console.log(`Updating file ${id} with content length:`, data.content ? data.content.length : 'null/undefined');
 
       const updatedFile = await File.findByIdAndUpdate(
         id,
         { ...data, updatedAt: new Date() },
         { new: true }
       ).lean();
-      return updatedFile || undefined;
+      
+      if (updatedFile) {
+        console.log(`File ${id} updated successfully. New content length:`, updatedFile.content ? updatedFile.content.length : 'null');
+        return {
+          ...updatedFile,
+          id: updatedFile._id?.toString() // Add id field for compatibility
+        };
+      }
+      
+      console.log(`Failed to update file ${id} - file not found in database`);
+      return undefined;
     } catch (error) {
       console.error('Error updating file:', error);
       return undefined;

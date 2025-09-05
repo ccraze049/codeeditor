@@ -283,7 +283,10 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
           if (file && newContent !== file.content) {
-            console.log('Auto-saving file:', file.name);
+            console.log('Frontend: Auto-saving file:', file.name);
+            console.log('Frontend: File ID:', file.id);
+            console.log('Frontend: Content length:', newContent.length);
+            console.log('Frontend: Previous content length:', file.content ? file.content.length : 'null');
             updateFileMutation.mutate({ fileId: file.id, content: newContent });
           }
         }, 1000);
