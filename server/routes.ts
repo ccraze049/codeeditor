@@ -1463,50 +1463,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Universal process stopping approach that works on all platforms
           let stoppedProcesses = 0;
           
-          // Enhanced process stopping for cloud platforms like Render
-          const processPatterns = [
-            'node.*index.js',
-            'npm.*start',
-            'npm.*dev', 
-            'python.*main.py',
-            'node.*server',
-            'telegraf',
-            'bot'
-          ];
-          
-          for (const pattern of processPatterns) {
-            try {
-              // Method 1: Try pkill (most reliable)
+          // Safe process stopping - only target user processes in project directory
+          try {
+            // Very specific targeting to avoid killing system Node.js processes
+            const projectPath = workingDir;
+            const safePatterns = [
+              `${projectPath}/index.js`,
+              `node ${projectPath}/index.js`,
+              `${projectPath}.*index.js`
+            ];
+            
+            for (const pattern of safePatterns) {
               try {
-                execSync('which pkill', { stdio: 'ignore' });
-                execSync(`pkill -f "${pattern}"`, { stdio: 'ignore' });
-                stoppedProcesses++;
-                console.log(`Stopped processes matching: ${pattern}`);
-              } catch {
-                // Method 2: ps + kill (universal fallback)
-                try {
-                  const psCommand = `ps aux | grep "${pattern}" | grep -v grep | awk '{print $2}'`;
-                  const pids = execSync(psCommand, { encoding: 'utf8', timeout: 5000 }).trim();
-                  
-                  if (pids) {
-                    const pidList = pids.split('\n').filter(pid => pid.trim() && !isNaN(parseInt(pid)));
-                    if (pidList.length > 0) {
-                      for (const pid of pidList) {
-                        try {
-                          execSync(`kill -9 ${pid}`, { stdio: 'ignore', timeout: 3000 });
-                          stoppedProcesses++;
-                        } catch {}
-                      }
-                      console.log(`Killed ${pidList.length} processes matching: ${pattern}`);
-                    }
+                // Use pgrep for safer process identification
+                const pids = execSync(`pgrep -f "${pattern}"`, { encoding: 'utf8', timeout: 3000 }).trim();
+                
+                if (pids) {
+                  const pidList = pids.split('\n').filter(pid => pid.trim() && !isNaN(parseInt(pid)));
+                  for (const pid of pidList) {
+                    try {
+                      // Graceful shutdown with SIGTERM first
+                      execSync(`kill -15 ${pid}`, { stdio: 'ignore', timeout: 2000 });
+                      stoppedProcesses++;
+                    } catch {}
                   }
-                } catch (psError) {
-                  console.warn(`Failed to stop ${pattern}:`, psError);
+                  if (pidList.length > 0) {
+                    console.log(`Safely stopped ${pidList.length} project processes`);
+                  }
                 }
-              }
-            } catch (error) {
-              console.warn(`Error stopping ${pattern}:`, error);
+              } catch {}
             }
+            
+            // If no processes found with pgrep, try more specific ps approach
+            if (stoppedProcesses === 0) {
+              try {
+                const psCmd = `ps aux | grep "${projectPath}" | grep "node.*index.js" | grep -v grep | awk '{print $2}'`;
+                const pids = execSync(psCmd, { encoding: 'utf8', timeout: 3000 }).trim();
+                
+                if (pids) {
+                  const pidList = pids.split('\n').filter(pid => pid.trim());
+                  for (const pid of pidList) {
+                    try {
+                      execSync(`kill -15 ${pid}`, { stdio: 'ignore' });
+                      stoppedProcesses++;
+                    } catch {}
+                  }
+                }
+              } catch {}
+            }
+            
+          } catch (error) {
+            console.warn('Safe process stop error:', error);
           }
           
           // Return appropriate response based on stopped processes
