@@ -139,6 +139,30 @@
       overflow-wrap: break-word !important;
       white-space: pre-wrap !important;
     }
+    
+    /* Bottom panel sections mobile fixes */
+    .overflow-auto {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Preview iframe mobile optimization */
+    iframe {
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+    
+    /* Output and Debug console mobile styling */
+    .font-mono {
+      font-size: 10px !important;
+      line-height: 1.3 !important;
+    }
+    
+    /* Bottom panel content containers */
+    .h-full.w-full.overflow-auto {
+      max-width: 100vw !important;
+      overflow-x: auto !important;
+      overflow-y: auto !important;
+    }
   }
 }
 

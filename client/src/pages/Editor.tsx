@@ -529,40 +529,47 @@ export default function Editor() {
                 </div>
                 
                 {activeBottomTab === "problems" && (
-                  <div className="p-4 text-ide-text-secondary">
-                    No problems detected.
+                  <div className="h-full w-full overflow-auto p-2 md:p-4 text-ide-text-secondary">
+                    <div className="max-w-full break-words">
+                      No problems detected.
+                    </div>
                   </div>
                 )}
                 {activeBottomTab === "output" && (
-                  <div className="p-4 text-ide-text-secondary">
-                    Output console ready.
+                  <div className="h-full w-full overflow-auto p-2 md:p-4 text-ide-text-secondary">
+                    <div className="max-w-full break-words font-mono text-xs md:text-sm">
+                      Output console ready.
+                    </div>
                   </div>
                 )}
                 {activeBottomTab === "debug" && (
-                  <div className="p-4 text-ide-text-secondary">
-                    Debug console ready.
+                  <div className="h-full w-full overflow-auto p-2 md:p-4 text-ide-text-secondary">
+                    <div className="max-w-full break-words font-mono text-xs md:text-sm">
+                      Debug console ready.
+                    </div>
                   </div>
                 )}
                 {activeBottomTab === "preview" && (
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-center justify-between p-2 bg-ide-bg-tertiary border-b border-ide-border">
-                      <span className="text-sm text-ide-text-secondary">Live Preview</span>
+                  <div className="flex flex-col h-full w-full overflow-hidden">
+                    <div className="flex items-center justify-between p-1 md:p-2 bg-ide-bg-tertiary border-b border-ide-border flex-shrink-0">
+                      <span className="text-xs md:text-sm text-ide-text-secondary">Live Preview</span>
                       <Button
                         size="sm"
                         onClick={() => window.open(`/api/projects/${projectId}/preview-html`, '_blank')}
-                        className="text-xs bg-blue-600 hover:bg-blue-700"
+                        className="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1"
                         data-testid="button-open-preview"
                       >
-                        Open in New Tab
+                        Open
                       </Button>
                     </div>
-                    <div className="flex-1 bg-white overflow-hidden">
+                    <div className="flex-1 bg-white overflow-hidden w-full">
                       <iframe
                         key={lastSaveTime} // Force refresh when file is saved
                         src={`/api/projects/${projectId}/preview-html?t=${Date.now()}`}
                         className="w-full h-full border-0"
                         title="Live Preview"
                         sandbox="allow-scripts allow-same-origin"
+                        style={{minWidth: '100%', minHeight: '100%'}}
                       />
                     </div>
                   </div>
