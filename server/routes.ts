@@ -1457,10 +1457,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Environment PATH: ${commandEnv.PATH}`);
 
       // Execute command using shell for proper handling of operators like &&
+      // Special handling for long-running processes like servers/bots
+      const isLongRunningCommand = command.includes('node index.js') || 
+        command.includes('npm start') || 
+        command.includes('npm run dev') ||
+        command.includes('python') ||
+        command.includes('bot') ||
+        command.toLowerCase().includes('server');
+      
       const child = spawn('/bin/bash', ['-c', command], {
         cwd: workingDir,
         env: commandEnv,
-        timeout: 30000, // 30 second timeout for commands
+        timeout: isLongRunningCommand ? 0 : 30000, // No timeout for long-running processes, 30s for others
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
