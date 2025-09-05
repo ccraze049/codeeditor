@@ -401,6 +401,18 @@ export default function Editor() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
+                    setActiveBottomTab("preview");
+                    setIsBottomPanelOpen(true);
+                  }}
+                  className="p-2 text-xs"
+                  data-testid="button-preview"
+                >
+                  <Play className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
                     setActiveBottomTab("problems");
                     setIsBottomPanelOpen(true);
                   }}
@@ -420,18 +432,6 @@ export default function Editor() {
                   data-testid="button-output"
                 >
                   <FileText className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setActiveBottomTab("debug");
-                    setIsBottomPanelOpen(true);
-                  }}
-                  className="p-2 text-xs"
-                  data-testid="button-debug"
-                >
-                  <Bug className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -461,7 +461,7 @@ export default function Editor() {
 
               {/* Bottom Panel */}
               {isBottomPanelOpen && (
-                <div className={`${isMobile ? 'h-64' : 'h-80'} bg-ide-bg-secondary border-t border-ide-border flex flex-col flex-shrink-0`}>
+                <div className={`${isMobile ? 'h-72 sm:h-80' : 'h-80'} bg-ide-bg-secondary border-t border-ide-border flex flex-col flex-shrink-0`}>
               <div className="h-10 flex items-center border-b border-ide-border">
                 <Button
                   variant={activeBottomTab === "terminal" ? "secondary" : "ghost"}
