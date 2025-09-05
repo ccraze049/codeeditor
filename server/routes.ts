@@ -1319,40 +1319,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Handle stop commands for bot processes
-      if (command === 'stop' || command === 'stop-bot' || command === 'kill-bot') {
-        try {
-          const killCommand = spawn('pkill', ['-f', 'node.*index.js'], {
-            cwd: workingDir,
-            env: commandEnv
-          });
-          
-          killCommand.on('close', (code) => {
-            res.json({
-              output: '🛑 Bot processes stopped successfully!\n✅ All Telegram bot processes terminated.',
-              type: 'output',
-              exitCode: code,
-              command: command
-            });
-          });
-          
-          killCommand.on('error', (err) => {
-            res.json({
-              output: `❌ Error stopping bot: ${err.message}`,
-              type: 'error',
-              command: command
-            });
-          });
-          
-          return;
-        } catch (error) {
-          return res.json({
-            output: `❌ Error stopping bot: ${error.message}`,
-            type: 'error',
-            command: command
-          });
-        }
-      }
 
       // Determine working directory - use stored session directory or default
       let workingDir = process.cwd();
@@ -1488,6 +1454,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         HOME: process.env.HOME || '/home/runner',
         USER: process.env.USER || 'runner'
       };
+
+      // Handle stop commands for bot processes
+      if (command === 'stop' || command === 'stop-bot' || command === 'kill-bot') {
+        try {
+          const killCommand = spawn('pkill', ['-f', 'node.*index.js'], {
+            cwd: workingDir,
+            env: commandEnv
+          });
+          
+          killCommand.on('close', (code) => {
+            res.json({
+              output: '🛑 Bot processes stopped successfully!\n✅ All Telegram bot processes terminated.',
+              type: 'output',
+              exitCode: code,
+              command: command
+            });
+          });
+          
+          killCommand.on('error', (err) => {
+            res.json({
+              output: `❌ Error stopping bot: ${err.message}`,
+              type: 'error',
+              command: command
+            });
+          });
+          
+          return;
+        } catch (error) {
+          return res.json({
+            output: `❌ Error stopping bot: ${error.message}`,
+            type: 'error',
+            command: command
+          });
+        }
+      }
 
       console.log(`Executing command: ${command}`);
       console.log(`Working directory: ${workingDir}`);
