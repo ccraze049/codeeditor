@@ -1445,14 +1445,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         command.includes('npm add') ||
         command.includes('npm remove');
 
-      // Setup proper command execution environment
+      // Setup proper command execution environment with cloud platform support
       const commandEnv = {
         ...process.env,
         NODE_ENV: 'development',
-        PATH: `/usr/local/bin:/usr/bin:/bin:${process.env.PATH}`,
+        PATH: `/usr/local/bin:/usr/bin:/bin:/opt/render/project/src/.venv/bin:/app/.venv/bin:/usr/local/python/bin:${process.env.PATH}`,
         PWD: workingDir,
         HOME: process.env.HOME || '/home/runner',
-        USER: process.env.USER || 'runner'
+        USER: process.env.USER || 'runner',
+        // Python environment variables for better compatibility on cloud platforms
+        PYTHONPATH: workingDir,
+        PYTHONUNBUFFERED: '1',
+        PYTHONDONTWRITEBYTECODE: '1',
+        // Cloud platform specific paths
+        PROJECT_ROOT: workingDir
       };
 
       // Handle stop commands for bot processes
@@ -1503,7 +1509,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         command.includes('bot') ||
         command.toLowerCase().includes('server');
       
-      const child = spawn('/bin/bash', ['-c', command], {
+      // Use cross-platform shell execution - try bash first, fallback to sh or cmd
+      let shell: string;
+      let shellArgs: string[];
+      
+      try {
+        // Try to detect available shell - for cloud platforms like Render
+        if (process.platform === 'win32') {
+          shell = 'cmd';
+          shellArgs = ['/c', command];
+        } else {
+          // For Unix-like systems, try sh first (more widely available than bash)
+          shell = 'sh';
+          shellArgs = ['-c', command];
+          
+          // Check if bash is available for better compatibility
+          try {
+            require('child_process').execSync('which bash', { stdio: 'ignore' });
+            shell = 'bash';
+            shellArgs = ['-c', command];
+          } catch {
+            // bash not available, stick with sh
+          }
+        }
+      } catch (error) {
+        // Fallback to sh if detection fails
+        shell = 'sh';
+        shellArgs = ['-c', command];
+      }
+
+      console.log(`Using shell: ${shell} with args:`, shellArgs);
+
+      const child = spawn(shell, shellArgs, {
         cwd: workingDir,
         env: commandEnv,
         timeout: isLongRunningCommand ? 0 : 30000, // No timeout for long-running processes, 30s for others
@@ -1525,18 +1562,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isLongRunningCommand) {
         console.log(`Long-running command detected: ${command}`);
         
-        // Send immediate response for long-running commands
+        // Detach the process so it can run independently
+        child.unref();
+        
+        // Collect initial output for 2 seconds, then respond
+        let initialOutput = '';
+        let initialError = '';
+        
+        const outputHandler = (data: Buffer) => {
+          initialOutput += data.toString();
+        };
+        
+        const errorHandler = (data: Buffer) => {
+          initialError += data.toString();
+        };
+        
+        child.stdout.on('data', outputHandler);
+        child.stderr.on('data', errorHandler);
+        
+        // Wait for initial output or timeout
         setTimeout(() => {
+          child.stdout.removeListener('data', outputHandler);
+          child.stderr.removeListener('data', errorHandler);
+          
+          let responseOutput = `🚀 Long-running process started: ${command}\n✅ Process is running in background...\n`;
+          
+          if (initialOutput) {
+            responseOutput += `\nInitial output:\n${initialOutput}`;
+          }
+          if (initialError && !initialError.includes('npm warn')) {
+            responseOutput += `\nInitial messages:\n${initialError}`;
+          }
+          
+          responseOutput += `\n💡 Use 'stop-bot' or 'pkill -f ${command}' to stop the process when needed.`;
+          
           res.json({ 
-            output: `🚀 Long-running process started: ${command}\n✅ Process is running in background...\n💡 Use 'stop' command to stop the process when needed.`,
+            output: responseOutput,
             type: 'output',
             exitCode: null,
             isLongRunning: true,
-            command: command
+            command: command,
+            processId: child.pid
           });
-        }, 1000); // Wait a bit for initial output
+        }, 2000);
         
-        // Keep process running - don't wait for close event
+        // Don't wait for close event for long-running processes
         return;
       }
 
@@ -1610,8 +1680,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       child.on('error', (err) => {
+        console.error(`Command execution error for '${command}':`, err);
+        
+        // If shell execution fails, try direct command execution for simple commands
+        if (err.code === 'ENOENT' && !command.includes('&&') && !command.includes('||') && !command.includes('|')) {
+          const cmdParts = command.trim().split(' ');
+          const baseCmd = cmdParts[0];
+          const args = cmdParts.slice(1);
+          
+          console.log(`Attempting direct execution of: ${baseCmd} with args:`, args);
+          
+          try {
+            const directChild = spawn(baseCmd, args, {
+              cwd: workingDir,
+              env: commandEnv,
+              stdio: ['pipe', 'pipe', 'pipe']
+            });
+            
+            let directOutput = '';
+            let directError = '';
+            
+            directChild.stdout.on('data', (data) => {
+              directOutput += data.toString();
+            });
+            
+            directChild.stderr.on('data', (data) => {
+              directError += data.toString();
+            });
+            
+            directChild.on('close', (code) => {
+              let result = directOutput;
+              if (directError) {
+                if (result) result += '\n';
+                result += directError;
+              }
+              
+              res.json({ 
+                output: result || `Command completed with exit code ${code}`,
+                type: code === 0 ? 'output' : 'error',
+                exitCode: code,
+                command: command
+              });
+            });
+            
+            directChild.on('error', (directErr) => {
+              res.json({ 
+                output: `❌ Command not found or execution failed: ${command}\n💡 Error: ${directErr.message}\n\n🔧 Available commands: ${allowedCommands.join(', ')}`,
+                type: 'error',
+                command: command
+              });
+            });
+            
+            return; // Exit early for direct execution
+          } catch (directError) {
+            // Fall through to original error handling
+          }
+        }
+        
         res.json({ 
-          output: `Error executing command: ${err.message}`,
+          output: `❌ Shell execution failed: ${err.message}\n💡 This might be due to platform restrictions. Try using direct commands instead of shell operators.\n\n🔧 Available commands: ${allowedCommands.join(', ')}`,
           type: 'error'
         });
       });
