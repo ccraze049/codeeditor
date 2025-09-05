@@ -6,7 +6,7 @@ import { insertProjectSchema, insertFileSchema, insertAiConversationSchema, inse
 import { generateCode, explainCode, debugCode, chatWithAI } from "./gemini-ai.js";
 import { parseAndCreateProjectFiles } from "./codeParser.js";
 import { z } from "zod";
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import path from "path";
 import fs from "fs/promises";
 import { fileSystemSync } from "./fileSystemSync.js";
@@ -1467,7 +1467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // First try pkill (most reliable)
           try {
-            require('child_process').execSync('which pkill', { stdio: 'ignore' });
+            execSync('which pkill', { stdio: 'ignore' });
             killCommand = spawn('pkill', ['-f', 'node.*index.js'], {
               cwd: workingDir,
               env: commandEnv,
@@ -1476,7 +1476,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch {
             // Fallback to ps + kill approach
             try {
-              const { execSync } = require('child_process');
               const pids = execSync('ps aux | grep "node.*index.js" | grep -v grep | awk \'{print $2}\'', { encoding: 'utf8' }).trim();
               
               if (pids) {
@@ -1606,7 +1605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (baseCommand === 'npm') {
           // Enhanced npm detection for various environments including Replit
           try {
-            require('child_process').execSync('which npm', { stdio: 'ignore' });
+            execSync('which npm', { stdio: 'ignore' });
           } catch {
             // Try extensive alternative npm paths including Replit and Nix environments
             const npmPaths = [
@@ -1623,7 +1622,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // First try to find npm using glob patterns for Nix store
             try {
-              const { execSync } = require('child_process');
               const npmPath = execSync('find /nix/store -name npm -type f -executable 2>/dev/null | head -1', { encoding: 'utf8' }).trim();
               if (npmPath) {
                 baseCommand = npmPath;
@@ -1687,7 +1685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         try {
           // Check if bash is available for better compatibility
-          require('child_process').execSync('which bash', { stdio: 'ignore' });
+          execSync('which bash', { stdio: 'ignore' });
           shell = 'bash';
         } catch {
           // bash not available, stick with sh
