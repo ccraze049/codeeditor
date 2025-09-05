@@ -1461,35 +1461,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
         PROJECT_ROOT: workingDir
       };
 
-      // Handle stop commands for bot processes
+      // Handle stop commands for bot processes with improved error handling
       if (command === 'stop' || command === 'stop-bot' || command === 'kill-bot') {
         try {
-          const killCommand = spawn('pkill', ['-f', 'node.*index.js'], {
-            cwd: workingDir,
-            env: commandEnv
-          });
+          // Try multiple approaches to stop processes
+          let killCommand;
           
-          killCommand.on('close', (code) => {
-            res.json({
-              output: '🛑 Bot processes stopped successfully!\n✅ All Telegram bot processes terminated.',
-              type: 'output',
-              exitCode: code,
-              command: command
+          // First try pkill (most reliable)
+          try {
+            require('child_process').execSync('which pkill', { stdio: 'ignore' });
+            killCommand = spawn('pkill', ['-f', 'node.*index.js'], {
+              cwd: workingDir,
+              env: commandEnv,
+              timeout: 10000
             });
-          });
+          } catch {
+            // Fallback to ps + kill approach
+            try {
+              const { execSync } = require('child_process');
+              const pids = execSync('ps aux | grep "node.*index.js" | grep -v grep | awk \'{print $2}\'', { encoding: 'utf8' }).trim();
+              
+              if (pids) {
+                const pidList = pids.split('\n').filter(pid => pid.trim());
+                if (pidList.length > 0) {
+                  execSync(`kill -9 ${pidList.join(' ')}`, { stdio: 'ignore' });
+                  return res.json({
+                    output: `🛑 Stopped ${pidList.length} process(es) successfully!\n✅ All bot processes terminated using kill command.`,
+                    type: 'output',
+                    command: command
+                  });
+                } else {
+                  return res.json({
+                    output: '📋 No running bot processes found to stop.',
+                    type: 'output',
+                    command: command
+                  });
+                }
+              } else {
+                return res.json({
+                  output: '📋 No running bot processes found to stop.',
+                  type: 'output',
+                  command: command
+                });
+              }
+            } catch (fallbackError) {
+              return res.json({
+                output: `⚠️ Stop command completed but couldn't verify processes.\nReason: ${fallbackError.message}`,
+                type: 'output',
+                command: command
+              });
+            }
+          }
           
-          killCommand.on('error', (err) => {
-            res.json({
-              output: `❌ Error stopping bot: ${err.message}`,
-              type: 'error',
-              command: command
+          // If pkill is available, handle its response
+          if (killCommand) {
+            let hasResponded = false;
+            
+            killCommand.on('close', (code) => {
+              if (!hasResponded) {
+                hasResponded = true;
+                if (code === 0) {
+                  res.json({
+                    output: '🛑 Bot processes stopped successfully!\n✅ All Telegram bot processes terminated.',
+                    type: 'output',
+                    exitCode: code,
+                    command: command
+                  });
+                } else {
+                  res.json({
+                    output: '📋 No running bot processes found to stop.',
+                    type: 'output',
+                    exitCode: code,
+                    command: command
+                  });
+                }
+              }
             });
-          });
+            
+            killCommand.on('error', (err) => {
+              if (!hasResponded) {
+                hasResponded = true;
+                res.json({
+                  output: `❌ Error stopping bot: ${err.message}\nTry: ps aux | grep node`,
+                  type: 'error',
+                  command: command
+                });
+              }
+            });
+            
+            // Timeout fallback
+            setTimeout(() => {
+              if (!hasResponded) {
+                hasResponded = true;
+                res.json({
+                  output: '⚠️ Stop command timeout - processes may have been stopped.',
+                  type: 'output',
+                  command: command
+                });
+              }
+            }, 5000);
+          }
           
           return;
         } catch (error) {
           return res.json({
-            output: `❌ Error stopping bot: ${error.message}`,
+            output: `❌ Error executing stop command: ${error.message}`,
             type: 'error',
             command: command
           });
