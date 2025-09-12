@@ -200,7 +200,7 @@ export default function Home() {
                   Create Project
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary">
+              <DialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary max-w-[85vw] sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto ml-2 mr-4 mt-4 mb-4 sm:m-0">
                 <DialogHeader>
                   <DialogTitle>Create New Project</DialogTitle>
                 </DialogHeader>
