@@ -111,7 +111,7 @@ export default function AIProjectCreator({ onProjectCreated }: AIProjectCreatorP
           AI Create
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary max-w-[85vw] sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto ml-0.5 mr-8 mt-4 mb-4 sm:m-0">
+      <DialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary max-w-[85vw] sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto ml-0.5 mr-8 mt-4 mb-4 sm:m-0 rounded-xl shadow-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
