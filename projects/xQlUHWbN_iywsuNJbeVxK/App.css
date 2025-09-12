@@ -1,0 +1,132 @@
+:root {
+    --primary-color: #4caf50;
+    --secondary-color: #f44336;
+    --text-color: #333;
+    --bg-color: #f9f9f9;
+    --border-color: #ddd;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    line-height: 1.6;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.todo-app {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-gap: 20px;
+    padding: 20px;
+}
+
+.todo-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+.todo-input input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    outline: none;
+}
+
+.todo-input button {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.todo-input button:hover {
+    background-color: #45a049;
+}
+
+.todo-list {
+    list-style: none;
+    padding: 0;
+}
+
+.todo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    margin: 10px 0;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.todo-item:hover {
+    transform: scale(1.05);
+    background-color: #f1f1f1;
+}
+
+.todo-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.todo-item label {
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.todo-item button {
+    padding: 10px 15px;
+    font-size: 16px;
+    color: white;
+    background-color: var(--secondary-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.todo-item button:hover {
+    background-color: #d32f2f;
+}
+
+/* Media Queries */
+@media (min-width: 768px) {
+    .todo-app {
+        grid-template-columns: 500px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 767px) {
+    .todo-input button {
+        width: 100%;
+    }
+}
+
+
+This CSS code creates a modern, mobile-responsive style for a simple todo website. It uses flexbox and grid for layout, CSS variables for consistent theming, and includes hover effects and smooth transitions. The media queries handle different screen sizes, ensuring the app looks good on both desktop and mobile devices. The color scheme and typography are chosen to be clean and professional, with good contrast for accessibility.

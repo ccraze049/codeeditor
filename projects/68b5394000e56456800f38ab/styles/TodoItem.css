@@ -1,0 +1,47 @@
+.todo-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--medium-gray);
+    transition: background-color 0.3s ease;
+  }
+  
+  .todo-item:last-child {
+    border-bottom: none;
+  }
+  
+  .todo-item:hover {
+    background-color: var(--light-gray);
+  }
+  
+  .todo-item input[type="checkbox"] {
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+  
+  .todo-item .todo-text {
+    flex-grow: 1;
+    font-size: 1rem;
+    word-break: break-word;
+  }
+  
+  .todo-item.completed .todo-text {
+    text-decoration: line-through;
+    color: var(--medium-gray);
+  }
+  
+  .todo-item .delete-button {
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .todo-item .delete-button:hover {
+    background-color: #c0392b;
+  }

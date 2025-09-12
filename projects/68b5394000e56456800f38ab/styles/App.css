@@ -1,0 +1,92 @@
+:root {
+  --primary-color: #3498db;
+  --secondary-color: #2ecc71;
+  --light-gray: #f2f2f2;
+  --medium-gray: #ddd;
+  --dark-gray: #333;
+  --text-color: var(--dark-gray);
+  --border-radius: 5px;
+  --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* General Styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--light-gray);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app {
+  max-width: 800px;
+  margin: 20px auto;
+  background-color: #fff;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+}
+
+/* Header Styles */
+.app-header {
+  background-color: var(--primary-color);
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+/* Main Content Styles */
+.app-main {
+  padding: 20px;
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--medium-gray);
+  font-style: italic;
+}
+
+/* Footer Styles */
+.app-footer {
+  background-color: var(--secondary-color);
+  color: #fff;
+  text-align: center;
+  padding: 10px;
+  font-size: 0.8rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app {
+    margin: 10px;
+  }
+
+  .app-header {
+    padding: 15px;
+  }
+
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .app-main {
+    padding: 15px;
+  }
+
+  .app-footer {
+    padding: 8px;
+  }
+}

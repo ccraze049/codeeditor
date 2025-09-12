@@ -1,0 +1,16 @@
+.App {
+  text-align: center;
+}
+
+.main-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+}
+
+/* Component imports will be handled by CSS Modules */
+/* This file is for global app-specific styles only */

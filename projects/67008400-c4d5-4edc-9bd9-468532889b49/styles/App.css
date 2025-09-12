@@ -1,0 +1,79 @@
+/* FILENAME: App.css */
+:root {
+  --primary-bg: #222;
+  --button-bg: #333;
+  --button-hover-bg: #444;
+  --operator-bg: #ff9500;
+  --text-color: #fff;
+  --shadow: 0px 4px 8px rgba(0,0,0,0.2);
+  --transition: 0.3s ease;
+  --border-radius: 10px;
+}
+
+.calculator {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background: var(--primary-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.display {
+  background: #000;
+  color: var(--text-color);
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  font-size: 2.5em;
+  text-align: right;
+  word-wrap: break-word;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.button {
+  background: var(--button-bg);
+  color: var(--text-color);
+  border: none;
+  border-radius: 5px;
+  padding: 20px;
+  font-size: 1.5em;
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+
+.button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+.operator {
+  background: var(--operator-bg);
+  color: #000;
+}
+
+.equals {
+  grid-column: span 2;
+}
+
+/* Media query for mobile */
+@media (max-width: 600px) {
+  .calculator {
+    width: 100%;
+  }
+  .display {
+    font-size: 1.8em;
+    padding: 15px;
+  }
+  .button {
+    font-size: 1.2em;
+    padding: 15px;
+  }
+}

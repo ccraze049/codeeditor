@@ -1,0 +1,100 @@
+:root {
+    --bg-color: #282c34;
+    --display-color: #61dafb;
+    --button-color: #444;
+    --operator-color: #f0a23b;
+    --equals-color: #28a745;
+    --text-color: #fff;
+    --hover-color: #555;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.calculator {
+    width: 90%;
+    max-width: 400px;
+    background-color: #333;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.display {
+    background-color: #222;
+    color: var(--display-color);
+    text-align: right;
+    padding: 20px;
+    font-size: 3em;
+    font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+button {
+    background-color: var(--button-color);
+    color: var(--text-color);
+    border: none;
+    padding: 20px;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    outline: none;
+    border: 1px solid #555;
+}
+
+button:hover {
+    background-color: var(--hover-color);
+}
+
+.operator {
+    background-color: var(--operator-color);
+    color: var(--text-color);
+}
+
+.equals {
+    background-color: var(--equals-color);
+    color: var(--text-color);
+    grid-column: span 2;
+}
+
+.clear {
+    background-color: white;
+    color: var(--text-color);
+}
+
+.zero {
+    grid-column: span 2;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 600px) {
+    .calculator {
+        width: 100%;
+        max-width: none;
+        border-radius: 0;
+    }
+
+    button {
+        padding: 15px;
+        font-size: 1.2em;
+    }
+
+    .display {
+        font-size: 2.5em;
+        padding: 15px;
+    }
+}

@@ -1,0 +1,113 @@
+:root {
+  --primary-color: #282c34;
+  --secondary-color: #61dafb;
+  --button-bg: #444;
+  --button-text: #fff;
+  --button-hover-bg: #666;
+  --display-bg: #333;
+  --display-text: #fff;
+  --operator-bg: #f0a23c;
+  --operator-hover-bg: #f4b466;
+  --equals-bg: #28a745;
+  --equals-hover-bg: #34ce57;
+  --clear-bg: #dc3545;
+  --clear-hover-bg: #e74c3c;
+  --border-radius: 8px;
+  --transition-duration: 0.2s;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.calculator {
+  background-color: #333;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  overflow: hidden;
+}
+
+.display {
+  background-color: var(--display-bg);
+  color: var(--display-text);
+  text-align: right;
+  padding: 20px;
+  font-size: 2.5rem;
+  font-weight: bold;
+  border-bottom: 1px solid #555;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+button {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  font-size: 1.5rem;
+  border: none;
+  padding: 20px;
+  cursor: pointer;
+  transition: background-color var(--transition-duration) ease;
+  outline: none;
+}
+
+button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+.operator {
+  background-color: var(--operator-bg);
+}
+
+.operator:hover {
+  background-color: var(--operator-hover-bg);
+}
+
+.equals {
+  background-color: var(--equals-bg);
+  grid-column: 3 / 5;
+}
+
+.equals:hover {
+  background-color: var(--equals-hover-bg);
+}
+
+.clear {
+  background-color: var(--clear-bg);
+}
+
+.clear:hover {
+  background-color: var(--clear-hover-bg);
+}
+
+@media (max-width: 480px) {
+  .calculator {
+    width: 95%;
+  }
+
+  button {
+    padding: 15px;
+    font-size: 1.2rem;
+  }
+
+  .display {
+    font-size: 2rem;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 768px) and (min-width: 481px) {
+    .calculator {
+        width: 80%;
+    }
+}

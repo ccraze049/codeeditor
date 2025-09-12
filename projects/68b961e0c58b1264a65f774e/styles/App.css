@@ -1,0 +1,172 @@
+:root {
+  --primary-color: #3498db;
+  --secondary-color: #2ecc71;
+  --background-color: #f0f0f0;
+  --text-color: #333;
+  --light-text-color: #777;
+  --border-color: #ccc;
+  --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --transition-duration: 0.3s;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 800px;
+  width: 100%;
+  margin: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  background-color: var(--primary-color);
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.app-main {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.upload-section,
+.conversion-section,
+.download-section {
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.upload-label {
+  display: inline-block;
+  padding: 10px 15px;
+  background-color: var(--secondary-color);
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color var(--transition-duration);
+}
+
+.upload-label:hover {
+  background-color: #27ae60;
+}
+
+.image-preview {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.image-preview img,
+.converted-image-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
+  box-shadow: var(--box-shadow);
+}
+
+.conversion-section .conversion-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.conversion-section .conversion-options label {
+  font-weight: bold;
+}
+
+.conversion-section .conversion-options select {
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+.convert-button,
+.download-button {
+  padding: 12px 20px;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color var(--transition-duration);
+}
+
+.convert-button:hover,
+.download-button:hover {
+  background-color: #2980b9;
+}
+
+.download-section {
+  text-align: center;
+}
+
+.app-footer {
+  text-align: center;
+  padding: 15px;
+  background-color: #eee;
+  color: var(--light-text-color);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 600px) {
+  .app {
+    margin: 10px;
+  }
+
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .app-main {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .upload-section,
+  .conversion-section,
+  .download-section {
+    padding: 10px;
+  }
+
+  .conversion-section .conversion-options {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .conversion-section .conversion-options label {
+    margin-bottom: 5px;
+  }
+}

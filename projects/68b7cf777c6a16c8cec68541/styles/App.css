@@ -1,0 +1,126 @@
+:root {
+  --primary-color: #282c34;
+  --secondary-color: #61dafb;
+  --button-color: #4CAF50;
+  --button-hover-color: #3e8e41;
+  --display-background: #333;
+  --display-text-color: white;
+  --operator-color: #f44336;
+  --operator-hover-color: #d32f2f;
+  --equals-color: #2196f3;
+  --equals-hover-color: #1976d2;
+  --clear-color: #ff9800;
+  --clear-hover-color: #f57c00;
+}
+
+.calculator {
+  max-width: 400px;
+  margin: 20px auto;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background-color: var(--primary-color);
+  transition: all 0.3s ease;
+}
+
+.calculator:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.display {
+  background-color: var(--display-background);
+  color: var(--display-text-color);
+  text-align: right;
+  padding: 20px;
+  font-size: 2.5em;
+  font-weight: bold;
+  border-bottom: 1px solid #ccc;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background-color: #ccc;
+}
+
+.buttons button {
+  background-color: white;
+  border: none;
+  padding: 20px;
+  font-size: 1.5em;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.buttons button:hover {
+  background-color: #eee;
+  transform: scale(1.05);
+}
+
+.buttons button:active {
+  transform: scale(0.95);
+}
+
+.operator {
+  background-color: var(--operator-color);
+  color: white;
+}
+
+.operator:hover {
+  background-color: var(--operator-hover-color);
+}
+
+.equals {
+  grid-column: 3 / 5;
+  background-color: var(--equals-color);
+  color: white;
+}
+
+.equals:hover {
+  background-color: var(--equals-hover-color);
+}
+
+.clear {
+  background-color: var(--clear-color);
+  color: white;
+}
+
+.clear:hover {
+  background-color: var(--clear-hover-color);
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .calculator {
+    max-width: 100%;
+    margin: 10px;
+  }
+
+  .display {
+    font-size: 2em;
+    padding: 15px;
+  }
+
+  .buttons button {
+    padding: 15px;
+    font-size: 1.2em;
+  }
+}
+
+@media (max-width: 400px) {
+  .display {
+    font-size: 1.5em;
+  }
+
+  .buttons button {
+    padding: 10px;
+    font-size: 1em;
+  }
+}
