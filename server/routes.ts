@@ -558,17 +558,15 @@ code {
         }
       }
 
-      // Perform filesystem sync if requested or if project has few files
-      const currentFiles = await mongoStorage.getProjectFiles(projectId);
-      
-      if (sync === 'true' || currentFiles.length <= 3) {
+      // Only perform filesystem sync when explicitly requested to avoid duplicates
+      if (sync === 'true') {
         try {
           const projectPath = path.join(process.cwd(), 'projects', projectId);
           await fileSystemSync.syncProjectFiles({
             projectId,
             projectPath,
-            includeNodeModules: true,
-            maxDepth: 8
+            includeNodeModules: false, // Disable node_modules sync to reduce duplicates
+            maxDepth: 5 // Reduce depth to avoid deep scanning
           });
           console.log(`Filesystem sync completed for project ${projectId}`);
         } catch (syncError) {
