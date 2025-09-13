@@ -1239,9 +1239,12 @@ code {
         f.path.endsWith('/src/App.js') || f.path.endsWith('/src/App.jsx')
       );
       
-      // Find CSS files from styles folder and root
+      // Find CSS files from styles folder and root - but exclude any IDE/system CSS
       const cssFiles = files.filter((f: any) => 
-        f.name.endsWith('.css') || f.path.includes('styles/')
+        (f.name.endsWith('.css') || f.path.includes('styles/')) &&
+        !f.path.includes('client/src') && // Exclude main IDE CSS
+        !f.name.includes('index.css') && // Exclude main index.css
+        !f.path.includes('node_modules') // Exclude node modules
       );
       const appCssFile = cssFiles.find((f: any) => 
         f.name === 'App.css' || f.path.includes('App.css')
@@ -1260,7 +1263,7 @@ code {
       }
 
       // Clean all component files - improved to handle React modules properly
-      const cleanComponent = (content: string) => {
+      const cleanComponent = (content: string, isMainApp = false) => {
         if (!content) return '';
         
         let cleanedContent = content
@@ -1283,24 +1286,27 @@ code {
         cleanedContent = cleanedContent.replace(/export\s+default\s+function\s+(\w+)/g, 'function $1');
         cleanedContent = cleanedContent.replace(/export\s+default\s+(\w+)/g, '');
         
-        // Inject React hooks and React binding at the beginning
-        const reactHooks = `const React = window.React;
+        // Only inject React hooks for the main App component to avoid duplication
+        if (isMainApp) {
+          const reactHooks = `const React = window.React;
 const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContext, useLayoutEffect, useImperativeHandle, useTransition, useDeferredValue } = React;
 
 `;
+          return reactHooks + cleanedContent;
+        }
         
-        return reactHooks + cleanedContent;
+        return cleanedContent;
       };
 
-      // Clean the main App component
-      let jsCode = cleanComponent(appJsFile.content || '');
+      // Clean the main App component with React hooks
+      let jsCode = cleanComponent(appJsFile.content || '', true);
       
-      // Clean all additional components and avoid duplicates
+      // Clean all additional components without React hooks duplication
       const uniqueComponents = new Map();
       componentFiles.forEach(file => {
         const componentName = file.name.replace(/\.(jsx?|tsx?)$/, '');
         if (!uniqueComponents.has(componentName)) {
-          uniqueComponents.set(componentName, cleanComponent(file.content || ''));
+          uniqueComponents.set(componentName, cleanComponent(file.content || '', false));
         }
       });
       let additionalComponents = Array.from(uniqueComponents.values()).join('\n\n');
@@ -1350,11 +1356,30 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    /* All CSS files from styles folder and root */
-    ${cssFiles.map(file => file.content || '').join('\n\n')}
+    /* Reset and default styles for React preview */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      margin: 0; 
+      padding: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+    }
+    #root {
+      min-height: 100vh;
+      width: 100%;
+    }
     
-    /* Default body styles */
-    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+    /* Project-specific CSS files */
+    ${cssFiles.map(file => {
+      if (!file.content) return '';
+      // Clean CSS to avoid conflicts with IDE styles
+      let cleanCSS = file.content
+        .replace(/--ide-[^:;{}]+:[^;{}]+;?/g, '') // Remove IDE-specific CSS variables
+        .replace(/hsl\(220\s+13%\s+9%\)/g, '#ffffff') // Replace dark IDE backgrounds with white
+        .replace(/var\(--ide-[^)]+\)/g, '#ffffff'); // Replace IDE variables with white
+      return cleanCSS;
+    }).join('\n\n')}
   </style>
 </head>
 <body>
