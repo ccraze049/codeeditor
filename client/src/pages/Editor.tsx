@@ -85,7 +85,7 @@ export default function Editor() {
     queryKey: ["/api/projects", projectId, "files"],
     retry: false,
     enabled: !!projectId && !isSharedView,
-    staleTime: 30000, // 30 seconds - reduce frequent updates to avoid disrupting coding
+    staleTime: 0, // Set to 0 for instant updates after file operations
     refetchOnWindowFocus: false, // Don't refresh on focus to avoid interruption while coding  
     refetchInterval: false, // Disable auto-refresh to prevent coding disruption - manual refresh when needed
   });
