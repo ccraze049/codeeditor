@@ -78,14 +78,14 @@ export default function Home() {
   });
 
   const deleteProjectMutation = useMutation({
-    mutationFn: async (projectId: string) => {
-      const response = await apiRequest("DELETE", `/api/projects/${projectId}`);
-      return await response.json();
+    mutationFn: async (data: { projectId: string; projectName: string }) => {
+      const response = await apiRequest("DELETE", `/api/projects/${data.projectId}`);
+      return { ...await response.json(), projectName: data.projectName };
     },
-    onSuccess: (data, projectId) => {
+    onSuccess: (data) => {
       toast({
         title: "Project Deleted",
-        description: "Project has been deleted successfully.",
+        description: `"${data.projectName}" has been deleted successfully.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
@@ -361,75 +361,90 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {projects.map((project) => (
                 <div key={project.id} className="relative group">
-                  <Link href={`/editor/${project.id}`} className="block">
-                    <Card 
-                      className="bg-ide-bg-secondary border-ide-border hover:border-primary/50 transition-colors cursor-pointer"
-                      data-testid={`card-project-${project.id}`}
-                    >
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-lg" role="img" aria-label={project.language || "javascript"}>
-                              {getLanguageIcon(project.language || "javascript")}
-                            </span>
-                            <CardTitle className="text-lg group-hover:text-primary transition-colors" data-testid={`text-project-name-${project.id}`}>
-                              {project.name}
-                            </CardTitle>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {project.isPublic && (
-                              <Globe className="h-4 w-4 text-ide-text-secondary" />
-                            )}
-                            <AlertDialog>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    data-testid={`button-project-menu-${project.id}`}
+                  <Card 
+                    className="bg-ide-bg-secondary border-ide-border hover:border-primary/50 transition-colors cursor-pointer"
+                    data-testid={`card-project-${project.id}`}
+                    onClick={() => window.location.href = `/editor/${project.id}`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <Link href={`/editor/${project.id}`} className="flex items-center space-x-2 flex-1 min-w-0">
+                          <span className="text-lg" role="img" aria-label={project.language || "javascript"}>
+                            {getLanguageIcon(project.language || "javascript")}
+                          </span>
+                          <CardTitle className="text-lg group-hover:text-primary transition-colors truncate" data-testid={`text-project-name-${project.id}`}>
+                            {project.name}
+                          </CardTitle>
+                        </Link>
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          {project.isPublic && (
+                            <Globe className="h-4 w-4 text-ide-text-secondary" />
+                          )}
+                          <AlertDialog>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity focus-visible:opacity-100"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                  aria-label={`Project actions for ${project.name}`}
+                                  data-testid={`button-project-menu-${project.id}`}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-ide-bg-secondary border-ide-border">
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem 
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    data-testid={`button-delete-project-${project.id}`}
                                   >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-ide-bg-secondary border-ide-border">
-                                  <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" data-testid={`button-delete-project-${project.id}`}>
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete Project
-                                    </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <AlertDialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-ide-text-secondary">
-                                    Are you sure you want to delete "{project.name}"? This action cannot be undone and will permanently remove all project files and data.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="border-ide-border hover:bg-ide-bg-tertiary">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteProjectMutation.mutate(project.id)}
-                                    disabled={deleteProjectMutation.isPending}
-                                    className="bg-red-500 hover:bg-red-600 text-white"
-                                    data-testid={`button-confirm-delete-${project.id}`}
-                                  >
-                                    {deleteProjectMutation.isPending ? "Deleting..." : "Delete"}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Project
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <AlertDialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete "{project.name}"</AlertDialogTitle>
+                                <AlertDialogDescription className="text-ide-text-secondary">
+                                  Are you sure you want to delete this project? This action cannot be undone and will permanently remove all project files and data.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="border-ide-border hover:bg-ide-bg-tertiary">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteProjectMutation.mutate({ projectId: project.id, projectName: project.name })}
+                                  disabled={deleteProjectMutation.isPending}
+                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                  data-testid={`button-confirm-delete-${project.id}`}
+                                >
+                                  {deleteProjectMutation.isPending ? "Deleting..." : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
-                        {project.description && (
-                          <p className="text-sm text-ide-text-secondary line-clamp-2" data-testid={`text-project-description-${project.id}`}>
+                      </div>
+                      {project.description && (
+                        <Link href={`/editor/${project.id}`} className="block">
+                          <p className="text-sm text-ide-text-secondary line-clamp-2 mt-2" data-testid={`text-project-description-${project.id}`}>
                             {project.description}
                           </p>
-                        )}
-                      </CardHeader>
-                      <CardContent>
+                        </Link>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <Link href={`/editor/${project.id}`} className="block">
                         <div className="flex items-center justify-between text-xs text-ide-text-secondary">
                           <div className="flex items-center space-x-3">
                             <span className="flex items-center">
@@ -441,9 +456,9 @@ export default function Home() {
                             </span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                      </Link>
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </div>
