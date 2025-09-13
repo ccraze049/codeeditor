@@ -83,7 +83,20 @@ export default function Home() {
     mutationFn: async (data: { projectId: string; projectName: string }) => {
       console.log("🗑️ Attempting to delete project:", data);
       const response = await apiRequest("DELETE", `/api/projects/${data.projectId}`);
-      return { ...await response.json(), projectName: data.projectName };
+      
+      // Try to parse JSON, but handle cases where response might be empty
+      let responseData = {};
+      try {
+        const text = await response.text();
+        if (text) {
+          responseData = JSON.parse(text);
+        }
+      } catch (error) {
+        console.log("Response parsing error (but deletion likely succeeded):", error);
+        // If parsing fails, we'll just use an empty object
+      }
+      
+      return { ...responseData, projectName: data.projectName };
     },
     onSuccess: (data) => {
       toast({

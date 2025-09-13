@@ -1,0 +1,136 @@
+:root {
+  --primary-color: #282c34;
+  --secondary-color: #ffffff;
+  --accent-color: #61dafb;
+  --button-bg: #333;
+  --button-hover-bg: #444;
+  --operator-bg: #f0a23b;
+  --operator-hover-bg: #f7b767;
+  --equals-bg: #28a745;
+  --equals-hover-bg: #34ce57;
+  --clear-bg: #dc3545;
+  --clear-hover-bg: #e74c5d;
+  --display-bg: #444;
+  --display-text-color: #fff;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.calculator {
+  width: 100%;
+  max-width: 400px;
+  background-color: #333;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  margin: 20px;
+}
+
+.display {
+  background-color: var(--display-bg);
+  color: var(--display-text-color);
+  text-align: right;
+  padding: 20px;
+  font-size: 2.5rem;
+  font-weight: bold;
+  word-wrap: break-word;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+}
+
+button {
+  flex: 1;
+  background-color: var(--button-bg);
+  color: var(--secondary-color);
+  font-size: 1.5rem;
+  font-weight: bold;
+  border: none;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  outline: none;
+}
+
+button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+.operator {
+  background-color: var(--operator-bg);
+}
+
+.operator:hover {
+  background-color: var(--operator-hover-bg);
+}
+
+.equals {
+  background-color: var(--equals-bg);
+}
+
+.equals:hover {
+  background-color: var(--equals-hover-bg);
+}
+
+.clear {
+  background-color: var(--clear-bg);
+  color: var(--secondary-color);
+}
+
+.clear:hover {
+  background-color: var(--clear-hover-bg);
+}
+
+.zero {
+  flex: 2;
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 480px) {
+  .calculator {
+    max-width: 100%;
+    margin: 10px;
+  }
+
+  button {
+    font-size: 1.2rem;
+    padding: 15px;
+  }
+
+  .display {
+    font-size: 2rem;
+    padding: 15px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .calculator {
+    max-width: 60%;
+  }
+
+  button {
+    font-size: 1.3rem;
+    padding: 18px;
+  }
+
+  .display {
+    font-size: 2.2rem;
+    padding: 18px;
+  }
+}
