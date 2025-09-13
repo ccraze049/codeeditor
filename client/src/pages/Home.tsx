@@ -479,7 +479,7 @@ export default function Home() {
 
       {/* Delete Project Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary rounded-lg mx-4 mr-8">
+        <AlertDialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary rounded-lg ml-0.5 mr-16">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{projectToDelete?.name}"</AlertDialogTitle>
             <AlertDialogDescription className="text-ide-text-secondary">
