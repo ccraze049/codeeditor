@@ -79,6 +79,7 @@ export default function Home() {
 
   const deleteProjectMutation = useMutation({
     mutationFn: async (data: { projectId: string; projectName: string }) => {
+      console.log("🗑️ Attempting to delete project:", data);
       const response = await apiRequest("DELETE", `/api/projects/${data.projectId}`);
       return { ...await response.json(), projectName: data.projectName };
     },
@@ -423,7 +424,10 @@ export default function Home() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel className="border-ide-border hover:bg-ide-bg-tertiary">Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => deleteProjectMutation.mutate({ projectId: project.id, projectName: project.name })}
+                                  onClick={() => {
+                                    console.log("🗑️ Delete button clicked for project:", project.id, project.name);
+                                    deleteProjectMutation.mutate({ projectId: project.id, projectName: project.name });
+                                  }}
                                   disabled={deleteProjectMutation.isPending}
                                   className="bg-red-500 hover:bg-red-600 text-white"
                                   data-testid={`button-confirm-delete-${project.id}`}

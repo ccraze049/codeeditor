@@ -523,7 +523,9 @@ code {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       if (projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -549,7 +551,9 @@ code {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       const hasAccess = projectOwnerId === userId || project.isPublic;
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(projectId, userId);
@@ -590,7 +594,9 @@ code {
       
       // Check project access
       const project = await mongoStorage.getProject(projectId);
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -619,7 +625,9 @@ code {
 
       // Check project access
       const project = await mongoStorage.getProject(file.projectId);
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -671,7 +679,9 @@ code {
 
       // Check project access
       const project = await mongoStorage.getProject(file.projectId);
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -798,7 +808,9 @@ code {
       
       // Check project access
       const project = await mongoStorage.getProject(projectId);
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -1903,7 +1915,9 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       const hasAccess = projectOwnerId === userId || project.isPublic;
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(projectId, userId);
@@ -1941,7 +1955,9 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const projectOwnerId = project.ownerId?._id?.toString() || project.ownerId?.toString() || project.ownerId;
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
       const hasAccess = projectOwnerId === userId;
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(projectId, userId);
