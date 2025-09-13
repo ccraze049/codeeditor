@@ -45,15 +45,49 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
       const response = await apiRequest("POST", `/api/projects/${projectId}/files`, data);
       return await response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    onMutate: async (newFileData) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      
+      // Snapshot the previous value
+      const previousFiles = queryClient.getQueryData(["/api/projects", projectId, "files"]);
+      
+      // Optimistically update to the new value - using ObjectId compatible format
+      const tempId = `000000000000000000000000`; // Temporary valid ObjectId format
+      const optimisticFile = {
+        id: tempId,
+        projectId,
+        name: newFileData.name,
+        path: newFileData.path,
+        content: newFileData.isFolder ? null : "",
+        isFolder: newFileData.isFolder,
+        parentId: newFileData.parentId || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      queryClient.setQueryData(["/api/projects", projectId, "files"], (old: any) => {
+        return old ? [...old, optimisticFile] : [optimisticFile];
+      });
+      
+      // Return context with the snapshot and temp ID
+      return { previousFiles, tempId };
+    },
+    onSuccess: (serverFile, variables, context) => {
+      // Replace temp file with server file before invalidation
+      if (context?.tempId) {
+        queryClient.setQueryData(["/api/projects", projectId, "files"], (old: any) => {
+          if (!old) return [serverFile];
+          return old.map((file: any) => file.id === context.tempId ? serverFile : file);
+        });
+      }
       setNewItemParent(null);
       setNewItemName("");
       setIsCreating(false);
       toast({ title: "File created successfully" });
     },
-    onError: (error) => {
+    onError: (error, newFileData, context) => {
+      // Handle unauthorized errors first
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -65,11 +99,22 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
         }, 500);
         return;
       }
+      
+      // Rollback to previous state on error
+      if (context?.previousFiles) {
+        queryClient.setQueryData(["/api/projects", projectId, "files"], context.previousFiles);
+      }
+      
       toast({
         title: "Error",
         description: "Failed to create file",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refresh to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
   });
 
@@ -78,12 +123,38 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
       const response = await apiRequest("DELETE", `/api/files/${fileId}`);
       return await response.json();
     },
+    onMutate: async (fileId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      
+      // Snapshot the previous value
+      const previousFiles = queryClient.getQueryData(["/api/projects", projectId, "files"]);
+      
+      // Find the file being deleted to handle folder subtrees
+      const fileToDelete = (previousFiles as any[])?.find(f => f.id === fileId);
+      
+      // Optimistically remove the file and its children from UI
+      queryClient.setQueryData(["/api/projects", projectId, "files"], (old: any) => {
+        if (!old) return [];
+        
+        // If deleting a folder, also remove all its children
+        if (fileToDelete?.isFolder) {
+          return old.filter((file: any) => 
+            file.id !== fileId && !file.path.startsWith(fileToDelete.path + '/')
+          );
+        }
+        
+        return old.filter((file: any) => file.id !== fileId);
+      });
+      
+      // Return context with the snapshot
+      return { previousFiles };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({ title: "File deleted successfully" });
     },
-    onError: (error) => {
+    onError: (error, fileId, context) => {
+      // Handle unauthorized errors first
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -95,11 +166,22 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
         }, 500);
         return;
       }
+      
+      // Rollback to previous state on error
+      if (context?.previousFiles) {
+        queryClient.setQueryData(["/api/projects", projectId, "files"], context.previousFiles);
+      }
+      
       toast({
         title: "Error",
         description: "Failed to delete file",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refresh to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
   });
 
@@ -285,7 +367,8 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
             onClick={() => {
               if (file.isFolder) {
                 toggleFolder(file.id);
-              } else {
+              } else if (file.id !== '000000000000000000000000') {
+                // Don't allow clicking on temporary files during creation
                 onFileClick(file.id);
               }
             }}
