@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +52,7 @@ export default function Editor() {
   const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileFileTreeOpen, setIsMobileFileTreeOpen] = useState(false);
   const [isMobileTerminalOpen, setIsMobileTerminalOpen] = useState(false);
@@ -92,6 +93,31 @@ export default function Editor() {
 
   const project = isSharedView ? projectData?.project : projectData;
   const projectFiles = isSharedView ? projectData?.files : files;
+
+  // Mutation to make project public and get share URL
+  const makeProjectPublicMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const response = await apiRequest("POST", `/api/projects/${projectId}/make-public`);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      setShareUrl(data.shareUrl);
+      // Invalidate project cache to update isPublic status
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({
+        title: "Project Shared",
+        description: "Your project is now public and can be shared!",
+      });
+    },
+    onError: (error) => {
+      if (handleUnauthorizedError(error)) return;
+      toast({
+        title: "Error",
+        description: "Failed to make project public. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Set initial active file
   useEffect(() => {
@@ -170,7 +196,16 @@ export default function Editor() {
   };
 
   const handleShareProject = () => {
-    setIsShareDialogOpen(true);
+    // If project is already public and we have a share URL, just open dialog
+    if (project?.isPublic && shareUrl) {
+      setIsShareDialogOpen(true);
+    } else {
+      // Make project public first, then open dialog
+      if (projectId) {
+        makeProjectPublicMutation.mutate(projectId);
+        setIsShareDialogOpen(true);
+      }
+    }
   };
 
   const handleDeployProject = () => {
@@ -658,20 +693,22 @@ export default function Editor() {
               <label className="block text-sm font-medium mb-2">Project Link</label>
               <div className="flex items-center space-x-2">
                 <Input
-                  value={`${window.location.origin}/shared/${projectId}`}
+                  value={shareUrl || (project?.isPublic ? `${window.location.origin}/shared/${projectId}` : "Making project public...")}
                   readOnly
                   className="bg-ide-bg-tertiary border-ide-border"
                   data-testid="input-share-link"
                 />
                 <Button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/shared/${projectId}`);
+                    const linkToCopy = shareUrl || `${window.location.origin}/shared/${projectId}`;
+                    navigator.clipboard.writeText(linkToCopy);
                     toast({ title: "Link copied to clipboard!" });
                   }}
                   className="bg-primary hover:bg-primary/90"
+                  disabled={makeProjectPublicMutation.isPending || !shareUrl}
                   data-testid="button-copy-link"
                 >
-                  Copy
+                  {makeProjectPublicMutation.isPending ? "..." : "Copy"}
                 </Button>
               </div>
             </div>
@@ -693,10 +730,17 @@ export default function Editor() {
             <div className="flex space-x-3">
               <Button
                 className="flex-1 bg-primary hover:bg-primary/90"
-                onClick={() => setIsShareDialogOpen(false)}
+                onClick={() => {
+                  if (!project?.isPublic && projectId) {
+                    makeProjectPublicMutation.mutate(projectId);
+                  } else {
+                    setIsShareDialogOpen(false);
+                  }
+                }}
+                disabled={makeProjectPublicMutation.isPending}
                 data-testid="button-share-confirm"
               >
-                Share Project
+                {makeProjectPublicMutation.isPending ? "Making Public..." : (project?.isPublic ? "Done" : "Make Public & Share")}
               </Button>
               <Button
                 variant="outline"
