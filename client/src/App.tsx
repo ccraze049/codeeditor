@@ -20,6 +20,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Shared projects accessible to everyone */}
+      <Route path="/shared/:projectId" component={Editor} />
+      
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
@@ -29,7 +32,6 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/editor/:projectId" component={Editor} />
-          <Route path="/shared/:projectId" component={Editor} />
         </>
       )}
       <Route component={NotFound} />
