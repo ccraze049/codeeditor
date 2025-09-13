@@ -1055,7 +1055,11 @@ code {
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
-      if (!project || project.ownerId.toString() !== userId) {
+      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
+        ? project.ownerId._id.toString() 
+        : project.ownerId?.toString() || project.ownerId;
+      
+      if (!project || projectOwnerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
