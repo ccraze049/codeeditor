@@ -30,6 +30,8 @@ export default function Home() {
     language: "javascript",
     template: "react",
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -381,62 +383,38 @@ export default function Home() {
                           {project.isPublic && (
                             <Globe className="h-4 w-4 text-ide-text-secondary" />
                           )}
-                          <AlertDialog>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity focus-visible:opacity-100"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }}
-                                  aria-label={`Project actions for ${project.name}`}
-                                  data-testid={`button-project-menu-${project.id}`}
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-ide-bg-secondary border-ide-border">
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem 
-                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" 
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
-                                    data-testid={`button-delete-project-${project.id}`}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete Project
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete "{project.name}"</AlertDialogTitle>
-                                <AlertDialogDescription className="text-ide-text-secondary">
-                                  Are you sure you want to delete this project? This action cannot be undone and will permanently remove all project files and data.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="border-ide-border hover:bg-ide-bg-tertiary">Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => {
-                                    console.log("🗑️ Delete button clicked for project:", project.id, project.name);
-                                    deleteProjectMutation.mutate({ projectId: project.id, projectName: project.name });
-                                  }}
-                                  disabled={deleteProjectMutation.isPending}
-                                  className="bg-red-500 hover:bg-red-600 text-white"
-                                  data-testid={`button-confirm-delete-${project.id}`}
-                                >
-                                  {deleteProjectMutation.isPending ? "Deleting..." : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity focus-visible:opacity-100"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                aria-label={`Project actions for ${project.name}`}
+                                data-testid={`button-project-menu-${project.id}`}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-ide-bg-secondary border-ide-border">
+                              <DropdownMenuItem 
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setProjectToDelete({ id: project.id, name: project.name });
+                                  setDeleteDialogOpen(true);
+                                }}
+                                data-testid={`button-delete-project-${project.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Project
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                       {project.description && (
@@ -498,6 +476,44 @@ export default function Home() {
           <span className="sr-only">Create Project</span>
         </Button>
       )}
+
+      {/* Delete Project Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{projectToDelete?.name}"</AlertDialogTitle>
+            <AlertDialogDescription className="text-ide-text-secondary">
+              Are you sure you want to delete this project? This action cannot be undone and will permanently remove all project files and data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="border-ide-border hover:bg-ide-bg-tertiary"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setProjectToDelete(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (projectToDelete) {
+                  console.log("🗑️ Delete button clicked for project:", projectToDelete.id, projectToDelete.name);
+                  deleteProjectMutation.mutate({ projectId: projectToDelete.id, projectName: projectToDelete.name });
+                  setDeleteDialogOpen(false);
+                  setProjectToDelete(null);
+                }
+              }}
+              disabled={deleteProjectMutation.isPending}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid={`button-confirm-delete-${projectToDelete?.id || 'unknown'}`}
+            >
+              {deleteProjectMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
