@@ -44,7 +44,8 @@ export default function Editor() {
   const projectId = params?.projectId || sharedParams?.projectId;
   const isSharedView = !!sharedParams?.projectId;
   
-  const { user, isAuthenticated } = useAuth();
+  // Disable auth for shared views to prevent repeated 401 errors
+  const { user, isAuthenticated } = useAuth(!isSharedView);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
