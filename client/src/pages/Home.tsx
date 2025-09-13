@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Code, Plus, Star, Users, Calendar, Settings, LogOut, Folder, Globe, Bot, Sparkles } from "lucide-react";
+import { Code, Plus, Star, Users, Calendar, Settings, LogOut, Folder, Globe, Bot, Sparkles, Trash2, MoreVertical } from "lucide-react";
 import type { Project } from "@shared/schema";
 import AIProjectCreator from "@/components/AIProjectCreator";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -70,6 +72,38 @@ export default function Home() {
       toast({
         title: "Error",
         description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const response = await apiRequest("DELETE", `/api/projects/${projectId}`);
+      return await response.json();
+    },
+    onSuccess: (data, projectId) => {
+      toast({
+        title: "Project Deleted",
+        description: "Project has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
         variant: "destructive",
       });
     },
@@ -326,46 +360,91 @@ export default function Home() {
           ) : projects && projects.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {projects.map((project) => (
-                <Link key={project.id} href={`/editor/${project.id}`} className="block group">
-                  <Card 
-                    className="bg-ide-bg-secondary border-ide-border hover:border-primary/50 transition-colors cursor-pointer"
-                    data-testid={`card-project-${project.id}`}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg" role="img" aria-label={project.language || "javascript"}>
-                            {getLanguageIcon(project.language || "javascript")}
-                          </span>
-                          <CardTitle className="text-lg group-hover:text-primary transition-colors" data-testid={`text-project-name-${project.id}`}>
-                            {project.name}
-                          </CardTitle>
+                <div key={project.id} className="relative group">
+                  <Link href={`/editor/${project.id}`} className="block">
+                    <Card 
+                      className="bg-ide-bg-secondary border-ide-border hover:border-primary/50 transition-colors cursor-pointer"
+                      data-testid={`card-project-${project.id}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg" role="img" aria-label={project.language || "javascript"}>
+                              {getLanguageIcon(project.language || "javascript")}
+                            </span>
+                            <CardTitle className="text-lg group-hover:text-primary transition-colors" data-testid={`text-project-name-${project.id}`}>
+                              {project.name}
+                            </CardTitle>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {project.isPublic && (
+                              <Globe className="h-4 w-4 text-ide-text-secondary" />
+                            )}
+                            <AlertDialog>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    data-testid={`button-project-menu-${project.id}`}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-ide-bg-secondary border-ide-border">
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" data-testid={`button-delete-project-${project.id}`}>
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete Project
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <AlertDialogContent className="bg-ide-bg-secondary border-ide-border text-ide-text-primary">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-ide-text-secondary">
+                                    Are you sure you want to delete "{project.name}"? This action cannot be undone and will permanently remove all project files and data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="border-ide-border hover:bg-ide-bg-tertiary">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteProjectMutation.mutate(project.id)}
+                                    disabled={deleteProjectMutation.isPending}
+                                    className="bg-red-500 hover:bg-red-600 text-white"
+                                    data-testid={`button-confirm-delete-${project.id}`}
+                                  >
+                                    {deleteProjectMutation.isPending ? "Deleting..." : "Delete"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
-                        {project.isPublic && (
-                          <Globe className="h-4 w-4 text-ide-text-secondary" />
+                        {project.description && (
+                          <p className="text-sm text-ide-text-secondary line-clamp-2" data-testid={`text-project-description-${project.id}`}>
+                            {project.description}
+                          </p>
                         )}
-                      </div>
-                      {project.description && (
-                        <p className="text-sm text-ide-text-secondary line-clamp-2" data-testid={`text-project-description-${project.id}`}>
-                          {project.description}
-                        </p>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between text-xs text-ide-text-secondary">
-                        <div className="flex items-center space-x-3">
-                          <span className="flex items-center">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {formatDate(project.updatedAt?.toString())}
-                          </span>
-                          <span className="capitalize bg-ide-bg-tertiary px-2 py-1 rounded">
-                            {project.template}
-                          </span>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between text-xs text-ide-text-secondary">
+                          <div className="flex items-center space-x-3">
+                            <span className="flex items-center">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {formatDate(project.updatedAt?.toString())}
+                            </span>
+                            <span className="capitalize bg-ide-bg-tertiary px-2 py-1 rounded">
+                              {project.template}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </div>
               ))}
             </div>
           ) : (
