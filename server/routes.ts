@@ -1055,11 +1055,19 @@ code {
       const { id } = req.params;
       const project = await mongoStorage.getProject(id);
       
+      if (!project) {
+        console.log("🚫 Project not found:", id);
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
       const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
         ? project.ownerId._id.toString() 
         : project.ownerId?.toString() || project.ownerId;
       
-      if (!project || projectOwnerId !== userId) {
+      console.log("🔍 Share debug - User ID:", userId, "Project Owner ID:", projectOwnerId);
+      
+      if (projectOwnerId !== userId) {
+        console.log("🚫 Access denied for user:", userId, "project owner:", projectOwnerId);
         return res.status(403).json({ message: "Access denied" });
       }
 
