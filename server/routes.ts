@@ -204,12 +204,31 @@ yarn-error.log*
           isFolder: false,
         });
 
+        // Create styles folder for structure (empty CSS files)
+        await mongoStorage.createFile({
+          projectId: project.id,
+          name: "styles",
+          path: "/styles",
+          content: null,
+          isFolder: true,
+        });
+
+        // Create empty App.css file for structure
+        await mongoStorage.createFile({
+          projectId: project.id,
+          name: "App.css",
+          path: "/styles/App.css",
+          content: "",
+          isFolder: false,
+        });
+
         // Create App.jsx in ROOT (exactly like AI projects) - Using Tailwind CSS
         await mongoStorage.createFile({
           projectId: project.id,
           name: "App.jsx",
           path: "/App.jsx",
           content: `import React, { useState } from 'react';
+import './styles/App.css';
 
 function App() {
   const [count, setCount] = useState(0);
