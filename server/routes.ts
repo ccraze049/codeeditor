@@ -415,7 +415,11 @@ export default App;`,
       const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
         ? project.ownerId._id.toString() 
         : project.ownerId?.toString() || project.ownerId;
-      const hasAccess = projectOwnerId === userId || project.isPublic;
+      
+      // Check if user is admin - admins can access any project
+      const isUserAdmin = Boolean(req.user?.isAdmin);
+      
+      const hasAccess = projectOwnerId === userId || project.isPublic || isUserAdmin;
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(id, userId);
         if (!collaboration) {
@@ -502,7 +506,11 @@ export default App;`,
       const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
         ? project.ownerId._id.toString() 
         : project.ownerId?.toString() || project.ownerId;
-      const hasAccess = projectOwnerId === userId || project.isPublic;
+      
+      // Check if user is admin - admins can access any project files
+      const isUserAdmin = Boolean(req.user?.isAdmin);
+      
+      const hasAccess = projectOwnerId === userId || project.isPublic || isUserAdmin;
       if (!hasAccess) {
         const collaboration = await mongoStorage.getCollaboration(projectId, userId);
         if (!collaboration) {
