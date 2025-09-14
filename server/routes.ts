@@ -304,7 +304,7 @@ export default App;`,
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
   <meta name="description" content="${project.name}" />
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <title>${project.name}</title>
 </head>
 <body>
@@ -1325,7 +1325,7 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Reset and default styles for React preview */
     * { box-sizing: border-box; margin: 0; padding: 0; }
