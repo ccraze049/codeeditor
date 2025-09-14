@@ -92,7 +92,11 @@ export default function Admin() {
         title: "Project Updated", 
         description: "Project has been updated successfully.",
       });
+      // Invalidate both admin projects and current user's projects view
       queryClient.invalidateQueries({ queryKey: ["/api/admin/projects"] });
+      if (selectedUser) {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/users", selectedUser.id, "projects"] });
+      }
       setEditingProject(null);
     },
     onError: () => {
