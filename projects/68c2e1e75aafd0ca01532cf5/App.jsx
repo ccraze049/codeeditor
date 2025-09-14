@@ -50,6 +50,37 @@ function App() {
             Your React app with Tailwind CSS is ready to use! 🚀
           </p>
         </div>
+
+        {/* Test specific utility classes that user mentioned */}
+        <div className="mt-6 border-4 border-red-500 bg-yellow-100">
+          <h3 className="text-xl font-bold p-4 bg-green-200">🧪 UTILITY CLASSES TEST</h3>
+          
+          {/* Width and Height Test */}
+          <div className="p-6 bg-blue-100">
+            <h4 className="text-lg font-semibold mb-4">Width & Height Test:</h4>
+            <div className="w-32 h-16 bg-red-500 mb-2">w-32 h-16</div>
+            <div className="w-48 h-12 bg-green-500 mb-2">w-48 h-12</div>
+            <div className="w-64 h-20 bg-blue-500 mb-2">w-64 h-20</div>
+            <div className="w-full h-8 bg-purple-500">w-full h-8</div>
+          </div>
+
+          {/* Padding Test */}
+          <div className="p-6 bg-orange-100">
+            <h4 className="text-lg font-semibold mb-4">Padding Test:</h4>
+            <div className="p-2 bg-red-400 inline-block mr-2">p-2</div>
+            <div className="p-4 bg-green-400 inline-block mr-2">p-4</div>
+            <div className="p-6 bg-blue-400 inline-block mr-2">p-6</div>
+            <div className="px-8 py-2 bg-purple-400 inline-block">px-8 py-2</div>
+          </div>
+
+          {/* Margin Test */}
+          <div className="p-6 bg-pink-100">
+            <h4 className="text-lg font-semibold mb-4">Margin Test:</h4>
+            <div className="m-2 p-2 bg-red-400 inline-block">m-2</div>
+            <div className="m-4 p-2 bg-green-400 inline-block">m-4</div>
+            <div className="mx-6 my-2 p-2 bg-blue-400 inline-block">mx-6 my-2</div>
+          </div>
+        </div>
       </header>
     </div>
   );
