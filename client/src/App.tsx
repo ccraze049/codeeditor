@@ -10,6 +10,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Editor from "./pages/Editor";
+import Admin from "./pages/Admin";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -32,6 +33,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/editor/:projectId" component={Editor} />
+          <Route path="/admin" component={Admin} />
         </>
       )}
       <Route component={NotFound} />

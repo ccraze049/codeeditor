@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Code, Plus, Star, Users, Calendar, Settings, LogOut, Folder, Globe, Bot, Sparkles, Trash2, MoreVertical } from "lucide-react";
+import { Code, Plus, Star, Users, Calendar, Settings, LogOut, Folder, Globe, Bot, Sparkles, Trash2, MoreVertical, Shield } from "lucide-react";
 import type { Project } from "@shared/schema";
 import AIProjectCreator from "@/components/AIProjectCreator";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -179,6 +179,36 @@ export default function Home() {
           >
             <Settings className="h-4 w-4" />
           </Button>
+          
+          {/* Admin Button - Only show for admin users */}
+          {user?.isAdmin && (
+            <Link href="/admin">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-ide-border hover:bg-ide-bg-tertiary hidden sm:flex"
+                data-testid="button-admin"
+              >
+                <Shield className="h-4 w-4 mr-1" />
+                Admin
+              </Button>
+            </Link>
+          )}
+          
+          {/* Mobile Admin Button */}
+          {user?.isAdmin && (
+            <Link href="/admin">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-ide-border hover:bg-ide-bg-tertiary sm:hidden p-2"
+                aria-label="Admin Panel"
+                data-testid="button-admin-mobile"
+              >
+                <Shield className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
           
           <div className="flex items-center space-x-2">
             {user?.profileImageUrl ? (
