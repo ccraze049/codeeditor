@@ -1965,6 +1965,18 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
     }
   });
 
+  // Get projects by user ID (admin only)
+  app.get('/api/admin/users/:userId/projects', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const projects = await mongoStorage.getUserProjects(userId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching user projects:", error);
+      res.status(500).json({ message: "Failed to fetch user projects" });
+    }
+  });
+
   // Update user (admin only)
   app.put('/api/admin/users/:id', isAdmin, async (req: any, res) => {
     try {

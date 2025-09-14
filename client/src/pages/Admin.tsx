@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Users, FolderOpen, Settings, Edit2, Save, X } from "lucide-react";
+import { Users, FolderOpen, Settings, Edit2, Save, X, ArrowLeft, Eye, Code } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface User {
   _id: string;
@@ -40,9 +41,11 @@ export default function Admin() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'projects'>('users');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [view, setView] = useState<'users' | 'user-projects'>('users');
 
   // Fetch all users (admin only)
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
@@ -50,9 +53,10 @@ export default function Admin() {
     retry: false,
   });
 
-  // Fetch all projects (admin only)
-  const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
-    queryKey: ["/api/admin/projects"],
+  // Fetch selected user's projects
+  const { data: userProjects, isLoading: userProjectsLoading } = useQuery<Project[]>({
+    queryKey: ["/api/admin/users", selectedUser?.id, "projects"],
+    enabled: !!selectedUser,
     retry: false,
   });
 
@@ -108,7 +112,7 @@ export default function Admin() {
     updateProjectMutation.mutate(projectData);
   };
 
-  if (!user?.isAdmin) {
+  if (!user || !(user as any).isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -133,28 +137,37 @@ export default function Admin() {
           <p className="text-gray-400">Manage users and projects</p>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex space-x-4 mb-6">
-          <Button
-            variant={activeTab === 'users' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('users')}
-            className="flex items-center space-x-2"
-          >
-            <Users className="h-4 w-4" />
-            <span>Users</span>
-          </Button>
-          <Button
-            variant={activeTab === 'projects' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('projects')}
-            className="flex items-center space-x-2"
-          >
-            <FolderOpen className="h-4 w-4" />
-            <span>Projects</span>
-          </Button>
+        {/* Navigation Header */}
+        <div className="flex items-center space-x-4 mb-6">
+          {view === 'user-projects' && selectedUser && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setView('users');
+                  setSelectedUser(null);
+                }}
+                className="flex items-center space-x-2"
+                data-testid="button-back-to-users"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Users</span>
+              </Button>
+              <div className="text-xl font-semibold text-white">
+                {selectedUser.firstName} {selectedUser.lastName} के Projects
+              </div>
+            </>
+          )}
+          {view === 'users' && (
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-blue-400" />
+              <span className="text-xl font-semibold text-white">All Users</span>
+            </div>
+          )}
         </div>
 
-        {/* Users Tab */}
-        {activeTab === 'users' && (
+        {/* Users List */}
+        {view === 'users' && (
           <Card>
             <CardHeader>
               <CardTitle>Users Management</CardTitle>
@@ -176,28 +189,50 @@ export default function Admin() {
                   </TableHeader>
                   <TableBody>
                     {users?.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.email}</TableCell>
-                        <TableCell>{user.firstName} {user.lastName}</TableCell>
+                      <TableRow 
+                        key={user.id} 
+                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setView('user-projects');
+                        }}
+                        data-testid={`row-user-${user.id}`}
+                      >
+                        <TableCell className="font-medium" data-testid={`text-email-${user.id}`}>{user.email}</TableCell>
+                        <TableCell data-testid={`text-name-${user.id}`}>{user.firstName} {user.lastName}</TableCell>
                         <TableCell>
-                          <Badge variant={user.isActive ? "default" : "secondary"}>
-                            {user.isActive ? "Active" : "Inactive"}
+                          <Badge variant={(user as any).isActive ? "default" : "secondary"}>
+                            {(user as any).isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.isAdmin ? "destructive" : "outline"}>
-                            {user.isAdmin ? "Admin" : "User"}
+                          <Badge variant={(user as any).isAdmin ? "destructive" : "outline"}>
+                            {(user as any).isAdmin ? "Admin" : "User"}
                           </Badge>
                         </TableCell>
                         <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingUser(user)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingUser(user)}
+                              data-testid={`button-edit-user-${user.id}`}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setView('user-projects');
+                              }}
+                              data-testid={`button-view-projects-${user.id}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -208,15 +243,23 @@ export default function Admin() {
           </Card>
         )}
 
-        {/* Projects Tab */}
-        {activeTab === 'projects' && (
+        {/* User Projects */}
+        {view === 'user-projects' && selectedUser && (
           <Card>
             <CardHeader>
-              <CardTitle>Projects Management</CardTitle>
+              <CardTitle className="flex items-center space-x-2">
+                <FolderOpen className="h-5 w-5" />
+                <span>{selectedUser.firstName} {selectedUser.lastName} के Projects</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {projectsLoading ? (
+              {userProjectsLoading ? (
                 <div className="text-center py-8">Loading projects...</div>
+              ) : userProjects?.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>इस user का कोई project नहीं है</p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -226,16 +269,20 @@ export default function Admin() {
                       <TableHead>Language</TableHead>
                       <TableHead>Template</TableHead>
                       <TableHead>Visibility</TableHead>
-                      <TableHead>Owner</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {projects?.map((project) => (
-                      <TableRow key={project.id}>
-                        <TableCell className="font-medium">{project.name}</TableCell>
-                        <TableCell className="max-w-xs truncate">
+                    {userProjects?.map((project) => (
+                      <TableRow 
+                        key={project.id}
+                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                        onClick={() => navigate(`/editor/${project.id}`)}
+                        data-testid={`row-project-${project.id}`}
+                      >
+                        <TableCell className="font-medium" data-testid={`text-project-name-${project.id}`}>{project.name}</TableCell>
+                        <TableCell className="max-w-xs truncate" data-testid={`text-project-description-${project.id}`}>
                           {project.description || "No description"}
                         </TableCell>
                         <TableCell>
@@ -249,18 +296,27 @@ export default function Admin() {
                             {project.isPublic ? "Public" : "Private"}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          {project.ownerId?.firstName} {project.ownerId?.lastName}
-                        </TableCell>
                         <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingProject(project)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingProject(project)}
+                              data-testid={`button-edit-project-${project.id}`}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => navigate(`/editor/${project.id}`)}
+                              data-testid={`button-open-editor-${project.id}`}
+                            >
+                              <Code className="h-4 w-4" />
+                              <span className="ml-1 hidden sm:inline">Open</span>
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
