@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Code, Cpu, Users, Zap, Rocket, Globe } from "lucide-react";
+import TailwindTest from "@/components/TailwindTest";
 
 export default function Landing() {
   return (
@@ -125,6 +126,11 @@ export default function Landing() {
             </CardHeader>
           </Card>
         </div>
+      </section>
+
+      {/* Tailwind Test Section */}
+      <section className="container mx-auto px-4 py-8">
+        <TailwindTest />
       </section>
 
       {/* CTA Section */}
