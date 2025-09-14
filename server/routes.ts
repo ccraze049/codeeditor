@@ -204,49 +204,57 @@ yarn-error.log*
           isFolder: false,
         });
 
-        // Create App.jsx in ROOT (exactly like AI projects)
+        // Create App.jsx in ROOT (exactly like AI projects) - Using Tailwind CSS
         await mongoStorage.createFile({
           projectId: project.id,
           name: "App.jsx",
           path: "/App.jsx",
           content: `import React, { useState } from 'react';
-import './styles/App.css';
 
 function App() {
   const [count, setCount] = useState(0);
   
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Welcome to ${project.name}!</h1>
-        <p>This is your React application built with CodeSpace IDE.</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-center">
+      <div className="bg-white bg-opacity-95 p-10 rounded-3xl mx-5 shadow-2xl text-gray-800 max-w-2xl">
+        <h1 className="text-4xl font-bold mb-4">Welcome to ${project.name}!</h1>
+        <p className="text-lg mb-8">This is your React application built with CodeSpace IDE.</p>
         
-        <div className="counter-section">
-          <h2>Counter Example</h2>
-          <p className="counter-display">Count: {count}</p>
+        <div className="border-2 border-dashed border-blue-500 rounded-xl p-6 bg-blue-50 mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Counter Example</h2>
+          <p className="text-2xl font-bold text-blue-600 mb-6">Count: {count}</p>
           
-          <div className="button-group">
-            <button onClick={() => setCount(count + 1)}>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <button 
+              onClick={() => setCount(count + 1)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+            >
               Increment
             </button>
-            <button onClick={() => setCount(count - 1)}>
+            <button 
+              onClick={() => setCount(count - 1)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+            >
               Decrement  
             </button>
-            <button onClick={() => setCount(0)}>
+            <button 
+              onClick={() => setCount(0)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+            >
               Reset
             </button>
           </div>
         </div>
         
-        <div className="info-section">
-          <p>
-            Edit <code>App.jsx</code> to customize this application.
+        <div className="text-gray-600">
+          <p className="mb-2">
+            Edit <code className="bg-gray-100 px-2 py-1 rounded text-sm">App.jsx</code> to customize this application.
           </p>
           <p>
             Your React app is ready to use! 🚀
           </p>
         </div>
-      </header>
+      </div>
     </div>
   );
 }
@@ -277,6 +285,7 @@ export default App;`,
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
   <meta name="description" content="${project.name}" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <title>${project.name}</title>
 </head>
 <body>
@@ -287,87 +296,7 @@ export default App;`,
           isFolder: false,
         });
 
-        // Create styles folder (exactly like AI projects)
-        await mongoStorage.createFile({
-          projectId: project.id,
-          name: "styles",
-          path: "/styles",
-          content: null,
-          isFolder: true,
-        });
-
-        await mongoStorage.createFile({
-          projectId: project.id,
-          name: "App.css",
-          path: "/styles/App.css",
-          content: `.App {
-  text-align: center;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.App-header {
-  background-color: rgba(255, 255, 255, 0.95);
-  padding: 40px 20px;
-  border-radius: 20px;
-  margin: 20px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-  color: #333;
-}
-
-.counter-section {
-  margin: 30px 0;
-  padding: 20px;
-  border: 2px dashed #007bff;
-  border-radius: 12px;
-  background-color: rgba(0, 123, 255, 0.05);
-}
-
-.counter-display {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #007bff;
-  margin: 15px 0;
-}
-
-.button-group {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.button-group button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-}
-
-.button-group button:hover {
-  background-color: #0056b3;
-}
-
-.info-section {
-  margin-top: 30px;
-  color: #666;
-}
-
-code {
-  background-color: #f1f1f1;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  color: #d73a49;
-}`,
-          isFolder: false,
-        });
+        // No need to create styles folder for Tailwind CSS projects
 
       } else if (projectData.template === 'node') {
         // Node.js template
@@ -1377,6 +1306,7 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <style>
     /* Reset and default styles for React preview */
     * { box-sizing: border-box; margin: 0; padding: 0; }
