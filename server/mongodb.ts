@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true // This creates createdAt and updatedAt automatically
@@ -269,6 +273,7 @@ export interface IUser {
   lastName: string;
   profileImageUrl?: string;
   isActive?: boolean;
+  isAdmin?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
