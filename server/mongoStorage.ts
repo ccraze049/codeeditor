@@ -96,10 +96,18 @@ export class MongoStorage {
       const existingUser = await User.findOne({ email: userData.email });
       
       if (existingUser) {
-        // Update existing user
+        // Update existing user - preserve critical security fields unless explicitly overriding
+        const updateData: any = { ...userData, updatedAt: new Date() };
+        
+        // Security: Only allow isAdmin to be set if explicitly provided in userData
+        // If isAdmin is not provided in userData, preserve existing value
+        if (userData.isAdmin === undefined && existingUser.isAdmin) {
+          updateData.isAdmin = existingUser.isAdmin;
+        }
+        
         const updatedUser = await User.findByIdAndUpdate(
           existingUser._id,
-          { ...userData, updatedAt: new Date() },
+          updateData,
           { new: true }
         ).lean();
         return updatedUser!;
@@ -596,6 +604,58 @@ export class MongoStorage {
     } catch (error) {
       console.error('Error upserting project data:', error);
       throw error;
+    }
+  }
+
+  // Admin operations
+  async getAllUsers(): Promise<IUser[]> {
+    try {
+      const users = await User.find()
+        .sort({ createdAt: -1 })
+        .lean();
+      
+      return users.map(user => ({
+        ...user,
+        id: user._id?.toString()
+      }));
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
+    }
+  }
+
+  async getAllProjects(): Promise<IProject[]> {
+    try {
+      const projects = await Project.find()
+        .populate('ownerId', 'firstName lastName email')
+        .sort({ updatedAt: -1 })
+        .lean();
+      
+      return projects.map(project => ({
+        ...project,
+        id: project._id?.toString()
+      }));
+    } catch (error) {
+      console.error('Error getting all projects:', error);
+      return [];
+    }
+  }
+
+  async updateUser(id: string, data: Partial<IUser>): Promise<IUser | undefined> {
+    try {
+      const updatedUser = await User.findByIdAndUpdate(
+        id,
+        { ...data, updatedAt: new Date() },
+        { new: true }
+      ).lean();
+      
+      return updatedUser ? {
+        ...updatedUser,
+        id: updatedUser._id?.toString()
+      } : undefined;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return undefined;
     }
   }
 }

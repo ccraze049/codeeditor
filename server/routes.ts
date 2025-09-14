@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { mongoStorage } from "./mongoStorage";
-import { setupSimpleAuth, isAuthenticated } from "./simpleAuth";
+import { setupSimpleAuth, isAuthenticated, isAdmin } from "./simpleAuth";
 import { insertProjectSchema, insertFileSchema, insertAiConversationSchema, insertUserPreferencesSchema, insertProjectDataSchema } from "@shared/schema";
 import { generateCode, explainCode, debugCode, chatWithAI } from "./gemini-ai.js";
 import { parseAndCreateProjectFiles } from "./codeParser.js";
@@ -1939,6 +1939,73 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
     } catch (error) {
       console.error("Error updating project data:", error);
       res.status(500).json({ message: "Failed to update project data" });
+    }
+  });
+
+  // Admin routes
+  // Get all users (admin only)
+  app.get('/api/admin/users', isAdmin, async (req: any, res) => {
+    try {
+      const users = await mongoStorage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Get all projects (admin only)
+  app.get('/api/admin/projects', isAdmin, async (req: any, res) => {
+    try {
+      const projects = await mongoStorage.getAllProjects();
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching all projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  // Update user (admin only)
+  app.put('/api/admin/users/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      // Remove sensitive fields that shouldn't be mass-assigned
+      const { _id, createdAt, updatedAt, ...safeUpdateData } = updateData;
+      
+      const updatedUser = await mongoStorage.updateUser(id, safeUpdateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Update project (admin only)
+  app.put('/api/admin/projects/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      // Remove sensitive fields that shouldn't be mass-assigned
+      const { _id, createdAt, updatedAt, ...safeUpdateData } = updateData;
+      
+      const updatedProject = await mongoStorage.updateProject(id, safeUpdateData);
+      
+      if (!updatedProject) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
     }
   });
 
