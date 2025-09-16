@@ -400,7 +400,7 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
   }, [messages]);
 
   return (
-    <div className="w-full md:w-80 bg-ide-bg-secondary border-l border-ide-border flex flex-col h-full" data-testid="ai-assistant">
+    <div className="w-full md:w-80 bg-ide-bg-secondary border-l border-ide-border flex flex-col h-full overflow-hidden" data-testid="ai-assistant">
       {/* Header */}
       <div className="p-3 border-b border-ide-border flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -420,11 +420,11 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
 
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-3" ref={scrollAreaRef}>
-        <div className="space-y-4">
+        <div className="space-y-4 min-h-0">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex space-x-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex space-x-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}
             >
               {message.role === 'assistant' && (
                 <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0">
@@ -437,17 +437,17 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
                   className={`rounded-lg p-3 text-sm group relative break-words ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground inline-block max-w-[85%] ml-auto'
-                      : 'bg-ide-bg-tertiary text-ide-text-primary max-w-full'
+                      : 'bg-ide-bg-tertiary text-ide-text-primary w-full'
                   }`}
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm prose-slate dark:prose-invert max-w-none overflow-hidden break-words
-                      prose-headings:text-ide-text-primary prose-p:text-ide-text-primary prose-p:break-words
+                    <div className="prose prose-sm prose-slate dark:prose-invert w-full overflow-hidden break-words
+                      prose-headings:text-ide-text-primary prose-p:text-ide-text-primary prose-p:break-words prose-p:w-full
                       prose-strong:text-ide-text-primary prose-code:text-ide-text-secondary
                       prose-code:bg-ide-bg-primary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:break-all
-                      prose-pre:bg-ide-bg-primary prose-pre:border prose-pre:border-ide-border prose-pre:overflow-x-auto
-                      prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-ide-bg-primary prose-blockquote:break-words
-                      prose-ul:text-ide-text-primary prose-ol:text-ide-text-primary prose-li:text-ide-text-primary prose-li:break-words">
+                      prose-pre:bg-ide-bg-primary prose-pre:border prose-pre:border-ide-border prose-pre:overflow-x-auto prose-pre:w-full
+                      prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-ide-bg-primary prose-blockquote:break-words prose-blockquote:w-full
+                      prose-ul:text-ide-text-primary prose-ol:text-ide-text-primary prose-li:text-ide-text-primary prose-li:break-words prose-li:w-full">
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -468,10 +468,10 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
                             
                             // Block code
                             return (
-                              <div className="space-y-2">
-                                <div className="relative group">
-                                  <pre className="bg-ide-bg-primary border border-ide-border rounded p-3 overflow-x-auto">
-                                    <code className="text-xs font-mono text-ide-text-primary" {...props}>
+                              <div className="space-y-2 w-full">
+                                <div className="relative group w-full">
+                                  <pre className="bg-ide-bg-primary border border-ide-border rounded p-3 overflow-x-auto w-full">
+                                    <code className="text-xs font-mono text-ide-text-primary block w-full" {...props}>
                                       {children}
                                     </code>
                                   </pre>
