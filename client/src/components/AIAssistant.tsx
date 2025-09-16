@@ -432,22 +432,22 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
                 </div>
               )}
               
-              <div className={`flex-1 ${message.role === 'user' ? 'text-right' : ''}`}>
+              <div className={`flex-1 min-w-0 ${message.role === 'user' ? 'text-right' : ''}`}>
                 <div
-                  className={`rounded-lg p-3 text-sm group relative ${
+                  className={`rounded-lg p-3 text-sm group relative break-words ${
                     message.role === 'user'
-                      ? 'bg-primary text-primary-foreground inline-block max-w-xs'
-                      : 'bg-ide-bg-tertiary text-ide-text-primary'
+                      ? 'bg-primary text-primary-foreground inline-block max-w-[85%] ml-auto'
+                      : 'bg-ide-bg-tertiary text-ide-text-primary max-w-full'
                   }`}
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm prose-slate dark:prose-invert max-w-none
-                      prose-headings:text-ide-text-primary prose-p:text-ide-text-primary 
+                    <div className="prose prose-sm prose-slate dark:prose-invert max-w-none overflow-hidden break-words
+                      prose-headings:text-ide-text-primary prose-p:text-ide-text-primary prose-p:break-words
                       prose-strong:text-ide-text-primary prose-code:text-ide-text-secondary
-                      prose-code:bg-ide-bg-primary prose-code:px-1 prose-code:py-0.5 prose-code:rounded
-                      prose-pre:bg-ide-bg-primary prose-pre:border prose-pre:border-ide-border
-                      prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-ide-bg-primary
-                      prose-ul:text-ide-text-primary prose-ol:text-ide-text-primary prose-li:text-ide-text-primary">
+                      prose-code:bg-ide-bg-primary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:break-all
+                      prose-pre:bg-ide-bg-primary prose-pre:border prose-pre:border-ide-border prose-pre:overflow-x-auto
+                      prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-ide-bg-primary prose-blockquote:break-words
+                      prose-ul:text-ide-text-primary prose-ol:text-ide-text-primary prose-li:text-ide-text-primary prose-li:break-words">
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
