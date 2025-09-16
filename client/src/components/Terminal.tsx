@@ -14,7 +14,8 @@ import {
   Terminal as TerminalIcon,
   Loader2,
   Filter,
-  RefreshCw
+  RefreshCw,
+  ArrowDown
 } from "lucide-react";
 
 interface TerminalProps {
@@ -55,7 +56,20 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Auto-focus input and scroll to bottom - improved for mobile
+  // Enhanced scroll to bottom function that works with Radix ScrollArea
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (scrollAreaRef.current) {
+        // Find the viewport element inside ScrollArea
+        const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        if (viewport) {
+          viewport.scrollTop = viewport.scrollHeight;
+        }
+      }
+    }, 50);
+  };
+
+  // Auto-focus input and scroll to bottom - improved for mobile and desktop
   useEffect(() => {
     // Enhanced mobile focus handling
     if (inputRef.current && !isRunning) {
@@ -73,9 +87,9 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
         }
       }
     }
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-    }
+    
+    // Always scroll to bottom when new lines are added
+    scrollToBottom();
   }, [lines, isRunning]);
 
 
@@ -354,6 +368,16 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
             data-testid="button-copy-terminal"
           >
             <Copy className="h-4 w-4 md:h-3 md:w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={scrollToBottom}
+            className="p-1 h-8 w-8 md:h-6 md:w-6 touch-manipulation"
+            title="Scroll to Bottom"
+            data-testid="button-scroll-bottom"
+          >
+            <ArrowDown className="h-4 w-4 md:h-3 md:w-3" />
           </Button>
           <Button
             variant="ghost"
