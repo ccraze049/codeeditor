@@ -6,22 +6,63 @@ import { cn } from "@/lib/utils"
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => (
-  <ScrollAreaPrimitive.Root
-    ref={ref}
-    className={cn("relative overflow-hidden", className)}
-    {...props}
-  >
-    <ScrollAreaPrimitive.Viewport 
-      className="h-full w-full rounded-[inherit] overflow-y-auto overscroll-contain touch-pan-y" 
-      style={{ WebkitOverflowScrolling: "touch" }}
+>(({ className, children, ...props }, ref) => {
+  // Use native scrolling on mobile devices for better touch support
+  const [isCoarsePointer, setIsCoarsePointer] = React.useState(false);
+  
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkPointer = () => {
+        setIsCoarsePointer(window.matchMedia('(pointer: coarse)').matches);
+      };
+      checkPointer();
+      
+      const mediaQuery = window.matchMedia('(pointer: coarse)');
+      
+      // Handle older Safari compatibility for event listeners
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', checkPointer);
+        return () => mediaQuery.removeEventListener('change', checkPointer);
+      } else if (mediaQuery.addListener) {
+        // Fallback for older Safari
+        mediaQuery.addListener(checkPointer);
+        return () => mediaQuery.removeListener(checkPointer);
+      }
+    }
+  }, []);
+  
+  // On mobile devices (coarse pointer), use native scrolling for better reliability
+  if (isCoarsePointer) {
+    return (
+      <div 
+        ref={ref as any} 
+        className={cn("relative h-full w-full overflow-y-auto overscroll-contain touch-pan-y", className)} 
+        style={{ WebkitOverflowScrolling: "touch" }}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+  
+  // On desktop, use the full Radix ScrollArea with custom scrollbars
+  return (
+    <ScrollAreaPrimitive.Root
+      ref={ref}
+      className={cn("relative overflow-hidden", className)}
+      {...props}
     >
-      {children}
-    </ScrollAreaPrimitive.Viewport>
-    <ScrollBar />
-    <ScrollAreaPrimitive.Corner />
-  </ScrollAreaPrimitive.Root>
-))
+      <ScrollAreaPrimitive.Viewport 
+        className="h-full w-full rounded-[inherit] overflow-y-auto overscroll-contain touch-pan-y" 
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {children}
+      </ScrollAreaPrimitive.Viewport>
+      <ScrollBar />
+      <ScrollAreaPrimitive.Corner />
+    </ScrollAreaPrimitive.Root>
+  );
+})
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
 
 const ScrollBar = React.forwardRef<

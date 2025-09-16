@@ -56,14 +56,17 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Enhanced scroll to bottom function that works with Radix ScrollArea
+  // Enhanced scroll to bottom function that works with both Radix ScrollArea and mobile native scroll
   const scrollToBottom = () => {
     setTimeout(() => {
       if (scrollAreaRef.current) {
-        // Find the viewport element inside ScrollArea
+        // First try to find the Radix viewport element (desktop)
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
         if (viewport) {
           viewport.scrollTop = viewport.scrollHeight;
+        } else {
+          // Fallback for mobile native scroll (when using native div instead of Radix)
+          scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
         }
       }
     }, 50);
@@ -392,8 +395,9 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
         </div>
       </div>
 
-      {/* Terminal Content */}
-      <ScrollArea className="flex-1 min-h-0 p-3" ref={scrollAreaRef}>
+      {/* Terminal Content - Wrapped with proper container for mobile scrolling */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ScrollArea className="h-full w-full p-3" ref={scrollAreaRef}>
         <div className="font-mono text-sm space-y-1">
           {lines.map((line) => (
             <div
@@ -424,7 +428,8 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
             )}
           </div>
         </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
 
       {/* Terminal Status - Mobile responsive */}
       <div className="px-3 py-1 bg-ide-bg-secondary border-t border-ide-border text-xs text-ide-text-secondary">
