@@ -593,11 +593,13 @@ export default function Editor() {
             </div>
 
             {isAIAssistantOpen && !isMobile && (
-              <AIAssistant
-                projectId={projectId!}
-                onClose={() => setIsAIAssistantOpen(false)}
-                activeFile={activeFile}
-              />
+              <div className="w-96 h-full flex flex-col border-l border-ide-border bg-ide-bg-secondary">
+                <AIAssistant
+                  projectId={projectId!}
+                  onClose={() => setIsAIAssistantOpen(false)}
+                  activeFile={activeFile}
+                />
+              </div>
             )}
           </div>
 
