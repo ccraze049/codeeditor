@@ -484,14 +484,14 @@ export default function Editor() {
 
             {/* Mobile AI Assistant Drawer - controlled by toolbar button */}
             <Drawer open={isMobileAIOpen} onOpenChange={setIsMobileAIOpen}>
-              <DrawerContent className="h-[70vh] bg-ide-bg-secondary border-ide-border">
-                <DrawerHeader className="p-3 border-b border-ide-border">
+              <DrawerContent className="h-[80vh] max-h-[80vh] bg-ide-bg-secondary border-ide-border">
+                <DrawerHeader className="p-3 border-b border-ide-border flex-shrink-0">
                   <DrawerTitle className="text-sm font-medium flex items-center">
                     <Settings className="h-4 w-4 text-purple-400 mr-2" />
                     AI Assistant
                   </DrawerTitle>
                 </DrawerHeader>
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 min-h-0 w-full">
                   <AIAssistant
                     projectId={projectId!}
                     onClose={() => setIsMobileAIOpen(false)}
