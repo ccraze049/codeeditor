@@ -166,7 +166,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       theme: 'codespace-dark',
       fontSize: isMobile ? 12 : 14, // Smaller font on mobile
       fontFamily: 'JetBrains Mono, Monaco, Consolas, monospace',
-      lineNumbers: isMobile ? 'off' : 'on', // Hide line numbers on mobile for space
+      lineNumbers: 'on', // Always show line numbers
       minimap: { enabled: !isMobile }, // Disable minimap on mobile for better performance
       scrollBeyondLastLine: false,
       automaticLayout: true,
@@ -276,7 +276,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
     if (editorInstanceRef.current && !isLoading) {
       editorInstanceRef.current.updateOptions({
         fontSize: isMobile ? 12 : 14,
-        lineNumbers: isMobile ? 'off' : 'on',
+        lineNumbers: 'on', // Always show line numbers
         minimap: { enabled: !isMobile },
         lineNumbersMinChars: isMobile ? 2 : 3,
         glyphMargin: !isMobile,
