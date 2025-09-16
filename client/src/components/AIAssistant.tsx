@@ -6,6 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { 
   X, 
   Send, 
@@ -438,39 +440,79 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
                       : 'bg-ide-bg-tertiary text-ide-text-primary'
                   }`}
                 >
-                  {message.type === 'code' ? (
-                    <div className="space-y-2">
-                      <p className="text-xs text-ide-text-secondary mb-2">Generated Code:</p>
-                      <pre className="bg-ide-bg-primary rounded p-2 text-xs overflow-x-auto font-mono">
-                        <code>{message.content}</code>
-                      </pre>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(message.content, message.id)}
-                          className="text-xs h-6 bg-ide-bg-secondary border-ide-border"
-                          data-testid={`button-copy-code-${message.id}`}
-                        >
-                          {copiedMessageId === message.id ? (
-                            <Check className="h-3 w-3 mr-1" />
-                          ) : (
-                            <Copy className="h-3 w-3 mr-1" />
-                          )}
-                          Copy
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => applyCodeMutation.mutate(message.content)}
-                          disabled={applyCodeMutation.isPending}
-                          className="text-xs h-6 bg-ide-bg-secondary border-ide-border"
-                          data-testid={`button-apply-code-${message.id}`}
-                        >
-                          <Code className="h-3 w-3 mr-1" />
-                          {applyCodeMutation.isPending ? 'Applying...' : 'Apply'}
-                        </Button>
-                      </div>
+                  {message.role === 'assistant' ? (
+                    <div className="prose prose-sm prose-slate dark:prose-invert max-w-none
+                      prose-headings:text-ide-text-primary prose-p:text-ide-text-primary 
+                      prose-strong:text-ide-text-primary prose-code:text-ide-text-secondary
+                      prose-code:bg-ide-bg-primary prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                      prose-pre:bg-ide-bg-primary prose-pre:border prose-pre:border-ide-border
+                      prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-ide-bg-primary
+                      prose-ul:text-ide-text-primary prose-ol:text-ide-text-primary prose-li:text-ide-text-primary">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code: ({ children, className, inline, ...props }: any) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            
+                            if (inline) {
+                              // Inline code
+                              return (
+                                <code 
+                                  className="bg-ide-bg-primary text-ide-text-secondary px-1 py-0.5 rounded text-xs font-mono"
+                                  {...props}
+                                >
+                                  {children}
+                                </code>
+                              );
+                            }
+                            
+                            // Block code
+                            return (
+                              <div className="space-y-2">
+                                <div className="relative group">
+                                  <pre className="bg-ide-bg-primary border border-ide-border rounded p-3 overflow-x-auto">
+                                    <code className="text-xs font-mono text-ide-text-primary" {...props}>
+                                      {children}
+                                    </code>
+                                  </pre>
+                                  <div className="flex space-x-2 mt-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => copyToClipboard(String(children).replace(/\n$/, ''), message.id)}
+                                      className="text-xs h-6 bg-ide-bg-secondary border-ide-border"
+                                      data-testid={`button-copy-code-${message.id}`}
+                                    >
+                                      {copiedMessageId === message.id ? (
+                                        <Check className="h-3 w-3 mr-1" />
+                                      ) : (
+                                        <Copy className="h-3 w-3 mr-1" />
+                                      )}
+                                      Copy
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => applyCodeMutation.mutate(String(children).replace(/\n$/, ''))}
+                                      disabled={applyCodeMutation.isPending}
+                                      className="text-xs h-6 bg-ide-bg-secondary border-ide-border"
+                                      data-testid={`button-apply-code-${message.id}`}
+                                    >
+                                      <Code className="h-3 w-3 mr-1" />
+                                      {applyCodeMutation.isPending ? 'Applying...' : 'Apply'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                        }}
+                      >
+                        {message.type === 'code' && !message.content.includes('```') 
+                          ? `\`\`\`${getLanguageFromFile(activeFile)}\n${message.content}\n\`\`\``
+                          : message.content
+                        }
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     <p>{message.content}</p>
