@@ -419,12 +419,12 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
       </div>
 
       {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-3" ref={scrollAreaRef}>
-        <div className="space-y-4 min-h-0">
+      <ScrollArea className="flex-1 p-3 w-full" ref={scrollAreaRef}>
+        <div className="space-y-4 min-h-0 w-full max-w-full">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex space-x-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}
+              className={`flex space-x-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'} w-full max-w-full`}
             >
               {message.role === 'assistant' && (
                 <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0">
@@ -432,22 +432,25 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
                 </div>
               )}
               
-              <div className={`flex-1 min-w-0 ${message.role === 'user' ? 'text-right' : ''}`}>
+              <div className={`flex-1 min-w-0 max-w-full ${message.role === 'user' ? 'text-right' : ''}`}>
                 <div
-                  className={`rounded-lg p-3 text-sm group relative break-words ${
+                  className={`rounded-lg p-3 text-sm group relative break-words overflow-hidden ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground inline-block max-w-[85%] ml-auto'
-                      : 'bg-ide-bg-tertiary text-ide-text-primary w-full'
+                      : 'bg-ide-bg-tertiary text-ide-text-primary w-full max-w-full'
                   }`}
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm prose-slate dark:prose-invert w-full overflow-hidden break-words
-                      prose-headings:text-ide-text-primary prose-p:text-ide-text-primary prose-p:break-words prose-p:w-full
-                      prose-strong:text-ide-text-primary prose-code:text-ide-text-secondary
-                      prose-code:bg-ide-bg-primary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:break-all
-                      prose-pre:bg-ide-bg-primary prose-pre:border prose-pre:border-ide-border prose-pre:overflow-x-auto prose-pre:w-full
-                      prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-ide-bg-primary prose-blockquote:break-words prose-blockquote:w-full
-                      prose-ul:text-ide-text-primary prose-ol:text-ide-text-primary prose-li:text-ide-text-primary prose-li:break-words prose-li:w-full">
+                    <div className="prose prose-sm prose-slate dark:prose-invert w-full max-w-full overflow-hidden break-words hyphens-auto
+                      prose-headings:text-ide-text-primary prose-headings:break-words prose-headings:w-full
+                      prose-p:text-ide-text-primary prose-p:break-words prose-p:w-full prose-p:max-w-full prose-p:overflow-wrap-anywhere
+                      prose-strong:text-ide-text-primary prose-strong:break-words
+                      prose-code:text-ide-text-secondary prose-code:bg-ide-bg-primary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:break-all prose-code:overflow-wrap-anywhere
+                      prose-pre:bg-ide-bg-primary prose-pre:border prose-pre:border-ide-border prose-pre:overflow-x-auto prose-pre:w-full prose-pre:max-w-full
+                      prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-ide-bg-primary prose-blockquote:break-words prose-blockquote:w-full prose-blockquote:max-w-full
+                      prose-ul:text-ide-text-primary prose-ul:break-words prose-ul:w-full prose-ol:text-ide-text-primary prose-ol:break-words prose-ol:w-full 
+                      prose-li:text-ide-text-primary prose-li:break-words prose-li:w-full prose-li:max-w-full prose-li:overflow-wrap-anywhere
+                      prose-a:break-words prose-a:overflow-wrap-anywhere">
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
