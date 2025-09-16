@@ -393,7 +393,7 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       </div>
 
       {/* Terminal Content */}
-      <ScrollArea className="flex-1 p-3" ref={scrollAreaRef}>
+      <ScrollArea className="flex-1 min-h-0 p-3" ref={scrollAreaRef}>
         <div className="font-mono text-sm space-y-1">
           {lines.map((line) => (
             <div
