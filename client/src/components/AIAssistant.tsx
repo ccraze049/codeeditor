@@ -493,17 +493,6 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
                                       )}
                                       Copy
                                     </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => applyCodeMutation.mutate(String(children).replace(/\n$/, ''))}
-                                      disabled={applyCodeMutation.isPending}
-                                      className="text-xs h-6 bg-ide-bg-secondary border-ide-border"
-                                      data-testid={`button-apply-code-${message.id}`}
-                                    >
-                                      <Code className="h-3 w-3 mr-1" />
-                                      {applyCodeMutation.isPending ? 'Applying...' : 'Apply'}
-                                    </Button>
                                   </div>
                                 </div>
                               </div>
