@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -419,7 +418,7 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
       </div>
 
       {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-3 w-full" ref={scrollAreaRef}>
+      <div className="flex-1 p-3 w-full overflow-y-auto overflow-x-hidden" ref={scrollAreaRef}>
         <div className="space-y-4 w-full max-w-full">
           {messages.map((message) => (
             <div
@@ -553,7 +552,7 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Quick Actions */}
       <div className="p-3 border-t border-ide-border">
