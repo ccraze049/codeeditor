@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { File } from "@shared/schema";
 
 interface MonacoProps {
@@ -20,6 +21,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
   const [content, setContent] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const updateFileMutation = useMutation({
     mutationFn: async ({ fileId, content }: { fileId: string; content: string }) => {
@@ -157,22 +159,22 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       'react.d.ts'
     );
 
-    // Create new editor with enhanced settings
+    // Create new editor with enhanced settings (mobile-optimized)
     const editor = monaco.editor.create(editorRef.current, {
       value: file?.content || '',
       language: getLanguageFromFileName(file?.name || ''),
       theme: 'codespace-dark',
-      fontSize: 14,
+      fontSize: isMobile ? 12 : 14, // Smaller font on mobile
       fontFamily: 'JetBrains Mono, Monaco, Consolas, monospace',
-      lineNumbers: 'on',
-      minimap: { enabled: true },
+      lineNumbers: isMobile ? 'off' : 'on', // Hide line numbers on mobile for space
+      minimap: { enabled: !isMobile }, // Disable minimap on mobile for better performance
       scrollBeyondLastLine: false,
       automaticLayout: true,
       readOnly: isReadOnly,
       wordWrap: 'on',
-      lineNumbersMinChars: 3,
-      glyphMargin: true,
-      folding: true,
+      lineNumbersMinChars: isMobile ? 2 : 3,
+      glyphMargin: !isMobile, // Disable glyph margin on mobile for space
+      folding: !isMobile, // Disable folding on mobile for simplicity
       renderLineHighlight: 'line',
       selectOnLineNumbers: true,
       contextmenu: true,
@@ -268,6 +270,20 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       editor.dispose();
     };
   }, [file, monacoRef.current, isLoading, isReadOnly]);
+
+  // Update editor options when mobile state changes (reactive to viewport changes)
+  useEffect(() => {
+    if (editorInstanceRef.current && !isLoading) {
+      editorInstanceRef.current.updateOptions({
+        fontSize: isMobile ? 12 : 14,
+        lineNumbers: isMobile ? 'off' : 'on',
+        minimap: { enabled: !isMobile },
+        lineNumbersMinChars: isMobile ? 2 : 3,
+        glyphMargin: !isMobile,
+        folding: !isMobile,
+      });
+    }
+  }, [isMobile, isLoading]);
 
   const getLanguageFromFileName = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();

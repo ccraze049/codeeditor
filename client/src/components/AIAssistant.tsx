@@ -398,7 +398,7 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
   }, [messages]);
 
   return (
-    <div className="w-80 md:w-80 sm:w-full bg-ide-bg-secondary border-l border-ide-border flex flex-col h-full" data-testid="ai-assistant">
+    <div className="w-full md:w-80 bg-ide-bg-secondary border-l border-ide-border flex flex-col h-full" data-testid="ai-assistant">
       {/* Header */}
       <div className="p-3 border-b border-ide-border flex items-center justify-between">
         <div className="flex items-center space-x-2">

@@ -58,22 +58,30 @@ export default function Editor() {
   const [isMobileFileTreeOpen, setIsMobileFileTreeOpen] = useState(false);
   const [isMobileTerminalOpen, setIsMobileTerminalOpen] = useState(false);
   const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
+  const [isMobileAIOpen, setIsMobileAIOpen] = useState(false);
   const isMobile = useIsMobile();
   const [activeBottomTab, setActiveBottomTab] = useState("terminal");
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(true);
   const [lastSaveTime, setLastSaveTime] = useState(Date.now());
   
-  // Auto-collapse sidebar and close AI assistant on mobile
+  // Auto-collapse sidebar on mobile but keep AI assistant functional
   useEffect(() => {
     if (isMobile) {
       if (!isSidebarCollapsed) {
         setIsSidebarCollapsed(true);
       }
+      // On mobile, AI assistant will be shown in drawer instead of sidebar
       if (isAIAssistantOpen) {
         setIsAIAssistantOpen(false);
+        setIsMobileAIOpen(true);
+      }
+    } else {
+      // On desktop, close mobile AI drawer if open
+      if (isMobileAIOpen) {
+        setIsMobileAIOpen(false);
       }
     }
-  }, [isMobile, isSidebarCollapsed, isAIAssistantOpen]);
+  }, [isMobile, isSidebarCollapsed, isAIAssistantOpen, isMobileAIOpen]);
   
   // Query for project data
   const { data: projectData, isLoading: projectLoading } = useQuery<any>({
@@ -347,7 +355,13 @@ export default function Editor() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsAIAssistantOpen(!isAIAssistantOpen)}
+            onClick={() => {
+              if (isMobile) {
+                setIsMobileAIOpen(!isMobileAIOpen);
+              } else {
+                setIsAIAssistantOpen(!isAIAssistantOpen);
+              }
+            }}
             className="p-2 hover:bg-ide-bg-tertiary"
             data-testid="button-toggle-ai"
           >
@@ -463,6 +477,25 @@ export default function Editor() {
                     className="w-full h-full border-0"
                     title="Live Preview"
                     sandbox="allow-scripts allow-same-origin"
+                  />
+                </div>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Mobile AI Assistant Drawer - controlled by toolbar button */}
+            <Drawer open={isMobileAIOpen} onOpenChange={setIsMobileAIOpen}>
+              <DrawerContent className="h-[70vh] bg-ide-bg-secondary border-ide-border">
+                <DrawerHeader className="p-3 border-b border-ide-border">
+                  <DrawerTitle className="text-sm font-medium flex items-center">
+                    <Settings className="h-4 w-4 text-purple-400 mr-2" />
+                    AI Assistant
+                  </DrawerTitle>
+                </DrawerHeader>
+                <div className="flex-1 overflow-hidden">
+                  <AIAssistant
+                    projectId={projectId!}
+                    onClose={() => setIsMobileAIOpen(false)}
+                    activeFile={activeFile}
                   />
                 </div>
               </DrawerContent>
