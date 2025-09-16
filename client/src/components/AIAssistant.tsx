@@ -400,7 +400,7 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
   }, [messages]);
 
   return (
-    <div className="w-full bg-ide-bg-secondary md:border-l border-ide-border flex flex-col h-full overflow-hidden" data-testid="ai-assistant">
+    <div className="w-full bg-ide-bg-secondary md:border-l border-ide-border flex flex-col h-full max-h-full overflow-hidden" data-testid="ai-assistant">
       {/* Header */}
       <div className="p-3 border-b border-ide-border flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -419,8 +419,8 @@ export default function AIAssistant({ projectId, onClose, activeFile }: AIAssist
       </div>
 
       {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-3 w-full" ref={scrollAreaRef}>
-        <div className="space-y-4 min-h-0 w-full max-w-full">
+      <ScrollArea className="flex-1 p-3 w-full overflow-y-auto" ref={scrollAreaRef}>
+        <div className="space-y-4 min-h-0 w-full max-w-full overflow-y-auto">
           {messages.map((message) => (
             <div
               key={message.id}
