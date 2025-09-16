@@ -171,7 +171,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       scrollBeyondLastLine: false,
       automaticLayout: true,
       readOnly: isReadOnly,
-      wordWrap: isMobile ? 'off' : 'on', // Better mobile scrolling with wordWrap off
+      wordWrap: 'on', // Enable word wrap for all devices
       lineNumbersMinChars: isMobile ? 2 : 3,
       glyphMargin: !isMobile, // Disable glyph margin on mobile for space
       folding: !isMobile, // Disable folding on mobile for simplicity
@@ -258,7 +258,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       const changeListener = editor.onDidChangeModelContent(() => {
         const newContent = editor.getValue();
         setContent(newContent);
-        
+
         // Auto-save after 500ms for immediate save
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
@@ -290,7 +290,7 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
         lineNumbersMinChars: isMobile ? 2 : 3,
         glyphMargin: !isMobile,
         folding: !isMobile,
-        wordWrap: isMobile ? 'off' : 'on', // Better mobile scrolling with wordWrap off
+        wordWrap: 'on', // Enable word wrap for all devices
         scrollbar: {
           vertical: 'auto',
           horizontal: 'auto',
