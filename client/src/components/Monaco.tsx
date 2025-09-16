@@ -171,10 +171,19 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
       scrollBeyondLastLine: false,
       automaticLayout: true,
       readOnly: isReadOnly,
-      wordWrap: 'on',
+      wordWrap: isMobile ? 'off' : 'on', // Better mobile scrolling with wordWrap off
       lineNumbersMinChars: isMobile ? 2 : 3,
       glyphMargin: !isMobile, // Disable glyph margin on mobile for space
       folding: !isMobile, // Disable folding on mobile for simplicity
+      // Mobile-specific scrolling settings
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+        verticalScrollbarSize: isMobile ? 8 : 17,
+        horizontalScrollbarSize: isMobile ? 8 : 17,
+        alwaysConsumeMouseWheel: false
+      },
+      overviewRulerLanes: isMobile ? 0 : 3, // Hide overview ruler on mobile
       renderLineHighlight: 'line',
       selectOnLineNumbers: true,
       contextmenu: true,
@@ -281,6 +290,15 @@ export default function Monaco({ file, projectId, isReadOnly, onSave }: MonacoPr
         lineNumbersMinChars: isMobile ? 2 : 3,
         glyphMargin: !isMobile,
         folding: !isMobile,
+        wordWrap: isMobile ? 'off' : 'on', // Better mobile scrolling with wordWrap off
+        scrollbar: {
+          vertical: 'auto',
+          horizontal: 'auto',
+          verticalScrollbarSize: isMobile ? 8 : 17,
+          horizontalScrollbarSize: isMobile ? 8 : 17,
+          alwaysConsumeMouseWheel: false
+        },
+        overviewRulerLanes: isMobile ? 0 : 3, // Hide overview ruler on mobile
       });
     }
   }, [isMobile, isLoading]);
