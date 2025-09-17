@@ -38,7 +38,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "GEMINI_API_KEY=\"AIzaSyCmda9m2FncVcxd7Gfr--gusDqw95YA3u4\" npm run dev"
+args = "npm run dev"
 waitForPort = 5000
 
 [agent]
