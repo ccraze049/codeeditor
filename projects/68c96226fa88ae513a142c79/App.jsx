@@ -8,7 +8,7 @@ function App() {
   const addItem = () => {
     setItems([...items, `Module ${items.length + 1}`]);
   };
-
+e
   return (
     <div className="app">
       <header className="app-header">
