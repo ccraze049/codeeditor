@@ -434,7 +434,7 @@ export default function Editor() {
                   <span className="ml-1 text-xs">Terminal</span>
                 </Button>
               </DrawerTrigger>
-              <DrawerContent className="h-[85vh] max-h-[85vh] bg-ide-bg-secondary border-ide-border">
+              <DrawerContent className="flex flex-col h-[85dvh] max-h-[85dvh] bg-ide-bg-secondary border-ide-border overflow-hidden">
                 <DrawerHeader className="p-3 border-b border-ide-border">
                   <DrawerTitle className="text-sm font-medium">Terminal</DrawerTitle>
                 </DrawerHeader>
