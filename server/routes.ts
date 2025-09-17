@@ -1185,7 +1185,7 @@ export default App;`,
         const cssFiles = files.filter((f: any) => f.name.endsWith('.css'));
         const jsFiles = files.filter((f: any) => f.name.endsWith('.js') && f.name !== 'package.json');
         
-        // Add error handling script to the beginning of head
+        // Add error handling script for better error display
         const errorHandlingScript = `
         <script>
           window.addEventListener('error', function(e) {
@@ -1245,12 +1245,36 @@ export default App;`,
           }
         });
         
+        // Inject JavaScript files using Blob URLs for accurate line numbers and file names
         jsFiles.forEach(jsFile => {
-          const scriptTag = `<script>${jsFile.content || ''}</script>`;
+          const jsContent = jsFile.content || '';
+          // Add sourceURL comment for proper file identification in devtools and error reports
+          const jsContentWithSource = jsContent + '\n//# sourceURL=' + jsFile.name;
+          
+          // Create the script that loads JS via Blob URL for native browser error reporting
+          const scriptTag = `
+          <script>
+            (function() {
+              const jsContent = ${JSON.stringify(jsContentWithSource)};
+              const blob = new Blob([jsContent], { type: 'application/javascript' });
+              const scriptUrl = URL.createObjectURL(blob);
+              const scriptElement = document.createElement('script');
+              scriptElement.src = scriptUrl;
+              scriptElement.onerror = function() {
+                console.error('Failed to load script: ${jsFile.name}');
+              };
+              document.head.appendChild(scriptElement);
+              // Clean up the blob URL after loading to prevent memory leaks
+              scriptElement.onload = function() {
+                URL.revokeObjectURL(scriptUrl);
+              };
+            })();
+          </script>`;
+          
           if (htmlContent.includes('</body>')) {
             htmlContent = htmlContent.replace('</body>', `${scriptTag}\n</body>`);
           } else {
-            htmlContent = `${htmlContent}<script>${jsFile.content || ''}</script>`;
+            htmlContent = `${htmlContent}${scriptTag}`;
           }
         });
         
