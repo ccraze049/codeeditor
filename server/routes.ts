@@ -1185,23 +1185,96 @@ export default App;`,
         const cssFiles = files.filter((f: any) => f.name.endsWith('.css'));
         const jsFiles = files.filter((f: any) => f.name.endsWith('.js') && f.name !== 'package.json');
         
-        // Add error handling script for better error display
+        // Add improved error handling script with sourceURL parsing
         const errorHandlingScript = `
         <script>
+          function extractFileAndLineFromStack(error) {
+            if (!error || !error.stack) return { fileName: 'Unknown', lineNumber: 'Unknown' };
+            
+            const stackLines = error.stack.split('\\n');
+            for (const line of stackLines) {
+              // Chrome/Firefox: "at functionName (filename:line:col)" or "at filename:line:col"
+              const chromeMatch = line.match(/^(?:\\s*at\\s+.*\\()?(.+?):(\\d+):(\\d+)\\)?$/);
+              if (chromeMatch) {
+                const fileName = chromeMatch[1];
+                const lineNumber = chromeMatch[2];
+                
+                // Check if this is one of our project files (contains project path or is not a system file)
+                if (fileName && !fileName.startsWith('http') && !fileName.includes('node_modules') && 
+                    (fileName.includes('/') || fileName.endsWith('.js'))) {
+                  return {
+                    fileName: decodeURI(fileName),
+                    lineNumber: lineNumber
+                  };
+                }
+              }
+              
+              // Safari: "@ filename:line:col"
+              const safariMatch = line.match(/^\\s*@\\s*(.+?):(\\d+):(\\d+)$/);
+              if (safariMatch) {
+                const fileName = safariMatch[1];
+                const lineNumber = safariMatch[2];
+                
+                if (fileName && !fileName.startsWith('http') && !fileName.includes('node_modules') &&
+                    (fileName.includes('/') || fileName.endsWith('.js'))) {
+                  return {
+                    fileName: decodeURI(fileName),
+                    lineNumber: lineNumber
+                  };
+                }
+              }
+              
+              // Fallback: look for blob: URLs with line numbers
+              const blobMatch = line.match(/blob:[^:]+:(\\d+):(\\d+)/);
+              if (blobMatch) {
+                return {
+                  fileName: 'JavaScript File',
+                  lineNumber: blobMatch[1]
+                };
+              }
+            }
+            
+            return { fileName: 'Unknown', lineNumber: 'Unknown' };
+          }
+          
           window.addEventListener('error', function(e) {
+            let fileName = e.filename || 'Unknown';
+            let lineNumber = e.lineno || 'Unknown';
+            
+            // If error object is available, try to extract better info from stack
+            if (e.error) {
+              const stackInfo = extractFileAndLineFromStack(e.error);
+              if (stackInfo.fileName !== 'Unknown') {
+                fileName = stackInfo.fileName;
+                lineNumber = stackInfo.lineNumber;
+              }
+            }
+            
             const errorContainer = document.createElement('div');
             errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #fdf2f2; color: #e74c3c; border-bottom: 2px solid #fecaca; padding: 16px; font-family: monospace; z-index: 10000; max-height: 200px; overflow-y: auto;';
             errorContainer.innerHTML = '<strong>JavaScript Error:</strong><br>' + 
-              'File: ' + (e.filename || 'Unknown') + '<br>' +
-              'Line: ' + (e.lineno || 'Unknown') + '<br>' +
+              'File: ' + fileName + '<br>' +
+              'Line: ' + lineNumber + '<br>' +
               'Message: ' + (e.message || 'Unknown error');
             document.body.insertBefore(errorContainer, document.body.firstChild);
           });
           
           window.addEventListener('unhandledrejection', function(e) {
+            let fileName = 'Unknown';
+            let lineNumber = 'Unknown';
+            
+            // Try to extract file info from rejection reason if it's an error
+            if (e.reason && e.reason.stack) {
+              const stackInfo = extractFileAndLineFromStack(e.reason);
+              fileName = stackInfo.fileName;
+              lineNumber = stackInfo.lineNumber;
+            }
+            
             const errorContainer = document.createElement('div');
             errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #fdf2f2; color: #e74c3c; border-bottom: 2px solid #fecaca; padding: 16px; font-family: monospace; z-index: 10000; max-height: 200px; overflow-y: auto;';
             errorContainer.innerHTML = '<strong>Promise Rejection:</strong><br>' + 
+              'File: ' + fileName + '<br>' +
+              'Line: ' + lineNumber + '<br>' +
               'Reason: ' + (e.reason || 'Unknown error');
             document.body.insertBefore(errorContainer, document.body.firstChild);
           });
@@ -1248,8 +1321,9 @@ export default App;`,
         // Inject JavaScript files using Blob URLs for accurate line numbers and file names
         jsFiles.forEach(jsFile => {
           const jsContent = jsFile.content || '';
-          // Add sourceURL comment for proper file identification in devtools and error reports
-          const jsContentWithSource = jsContent + '\n//# sourceURL=' + jsFile.name;
+          // Use full file path for unique identification, encode for sourceURL
+          const filePath = jsFile.path || jsFile.name;
+          const jsContentWithSource = jsContent + '\n//# sourceURL=' + encodeURI(filePath);
           
           // Create the script that loads JS via Blob URL for native browser error reporting
           const scriptTag = `
@@ -1260,8 +1334,9 @@ export default App;`,
               const scriptUrl = URL.createObjectURL(blob);
               const scriptElement = document.createElement('script');
               scriptElement.src = scriptUrl;
+              scriptElement.async = false; // Preserve execution order
               scriptElement.onerror = function() {
-                console.error('Failed to load script: ${jsFile.name}');
+                console.error('Failed to load script: ${filePath}');
               };
               document.head.appendChild(scriptElement);
               // Clean up the blob URL after loading to prevent memory leaks
