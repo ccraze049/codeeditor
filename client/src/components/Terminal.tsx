@@ -69,16 +69,30 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Simple and effective scroll to bottom function
+  // Enhanced scroll to bottom function with better mobile support
   const scrollToBottom = () => {
     const currentIsMobile = window.innerWidth <= 768;
     
     setTimeout(() => {
       if (scrollAreaRef.current) {
         if (currentIsMobile) {
-          // Mobile: Direct scroll to bottom
+          // Mobile: Enhanced scroll to bottom with smooth behavior
           const scrollContainer = scrollAreaRef.current;
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          try {
+            // Try smooth scroll first
+            scrollContainer.scrollTo({
+              top: scrollContainer.scrollHeight,
+              behavior: 'smooth'
+            });
+            
+            // Ensure we reach the bottom even if smooth scroll fails
+            setTimeout(() => {
+              scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            }, 100);
+          } catch (e) {
+            // Fallback for older browsers
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          }
         } else {
           // Desktop: Find and scroll the Radix ScrollArea viewport
           const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
@@ -90,7 +104,7 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
           }
         }
       }
-    }, currentIsMobile ? 50 : 50);
+    }, currentIsMobile ? 100 : 50);
   };
 
   // Auto-focus input and scroll to bottom - improved for mobile and desktop
@@ -419,31 +433,37 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       {/* Terminal Content - Simple Mobile Scrolling */}
       <div className="flex-1 min-h-0 relative">
         {isMobile ? (
-          <div 
-            ref={scrollAreaRef}
-            className="h-full w-full overflow-y-auto overscroll-contain p-3"
-            style={{ 
-              WebkitOverflowScrolling: 'touch',
-              touchAction: 'pan-y',
-              height: '100%'
-            }}
-          >
-            <div className="font-mono text-sm space-y-1 pb-20">
-              {lines.map((line) => (
-                <div
-                  key={line.id}
-                  className={`${getLineColor(line.type)} leading-relaxed break-words`}
-                  data-testid={`terminal-line-${line.type}`}
-                >
-                  {line.content}
-                </div>
-              ))}
+          <div className="h-full w-full flex flex-col relative">
+            {/* Mobile Terminal Content */}
+            <div 
+              ref={scrollAreaRef}
+              className="flex-1 overflow-y-auto overscroll-contain p-3"
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y'
+              }}
+            >
+              <div className="font-mono text-sm space-y-1">
+                {lines.map((line) => (
+                  <div
+                    key={line.id}
+                    className={`${getLineColor(line.type)} leading-relaxed break-words`}
+                    data-testid={`terminal-line-${line.type}`}
+                  >
+                    {line.content}
+                  </div>
+                ))}
+              </div>
             </div>
             
-            {/* Mobile Input - Fixed at bottom */}
+            {/* Mobile Input - Sticky at container bottom */}
             <div 
-              className="fixed bottom-0 left-0 right-0 bg-ide-bg-primary border-t border-ide-border p-3"
-              style={{ zIndex: 1000 }}
+              className="flex-shrink-0 bg-ide-bg-primary border-t border-ide-border p-3"
+              style={{ 
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 10
+              }}
             >
               <div className="flex items-center space-x-2">
                 <span className="text-ide-success text-sm flex-shrink-0">{currentWorkingDir}$</span>
