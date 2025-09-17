@@ -1,62 +1,144 @@
 import axios from 'axios';
 
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-const API_KEY = "AIzaSyCmda9m2FncVcxd7Gfr--gusDqw95YA3u4";
 
-if (!API_KEY) {
-  console.error('GEMINI_API_KEY environment variable is not set');
+// Multiple hardcoded Gemini API keys for fallback mechanism
+const API_KEYS = [
+  "AIzaSyCmda9m2FncVcxd7Gfr--gusDqw95YA3u4", // Primary key
+  "AIzaSyDXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // Secondary key (add real key here)
+  "AIzaSyEYYYYYYYYYYYYYYYYYYYYYYYYYYYYY", // Tertiary key (add real key here)  
+  "AIzaSyFZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", // Quaternary key (add real key here)
+].filter(key => key && !key.includes('XXX') && !key.includes('YYY') && !key.includes('ZZZ')); // Remove placeholder keys
+
+// Track current API key index for rotation and key cooldowns
+let currentApiKeyIndex = 0;
+const keyFailureCount: Map<number, number> = new Map();
+const keyCooldowns: Map<number, number> = new Map();
+
+console.log(`🔑 Gemini AI initialized with ${API_KEYS.length} API keys available for fallback`);
+
+if (API_KEYS.length === 0) {
+  console.error('⚠️  No valid Gemini API keys found! Please add real API keys to the hardcoded list.');
 }
 
 async function callGeminiAPI(prompt: string): Promise<string> {
-  try {
-    const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt
-            }
-          ]
-        }
-      ]
-    };
+  let lastError;
+  
+  // Try each API key until one succeeds
+  for (let i = 0; i < API_KEYS.length; i++) {
+    const keyIndex = (currentApiKeyIndex + i) % API_KEYS.length;
+    const currentKey = API_KEYS[keyIndex];
+    
+    // Skip if key is empty or invalid
+    if (!currentKey || currentKey.trim().length === 0) {
+      continue;
+    }
+    
+    // Check if key is in cooldown
+    const cooldownUntil = keyCooldowns.get(keyIndex) || 0;
+    if (Date.now() < cooldownUntil) {
+      console.log(`⏰ API key ${keyIndex + 1} in cooldown, skipping...`);
+      continue;
+    }
+    
+    try {
+      const requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ]
+      };
 
-    console.log('Making request to Gemini API:', GEMINI_API_URL);
-    console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
-    const response = await axios.post(
-      GEMINI_API_URL,
-      requestBody,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': API_KEY,
-        }
+      // Sanitized logging - don't log sensitive request content in production
+      const isDebugMode = process.env.NODE_ENV === 'development' && process.env.DEBUG_GEMINI_API === 'true';
+      console.log(`🔄 Trying API key ${keyIndex + 1}/${API_KEYS.length}`);
+      
+      if (isDebugMode) {
+        console.log('Request body (DEBUG):', JSON.stringify(requestBody, null, 2));
       }
-    );
 
-    console.log('Gemini API response:', JSON.stringify(response.data, null, 2));
+      const response = await axios.post(
+        GEMINI_API_URL,
+        requestBody,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': currentKey,
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
 
-    if (response.data.candidates && response.data.candidates[0] && response.data.candidates[0].content) {
-      return response.data.candidates[0].content.parts[0].text;
-    } else {
-      throw new Error('Unexpected response format from Gemini API');
+      // Sanitized response logging
+      if (isDebugMode) {
+        console.log('Gemini API response (DEBUG):', JSON.stringify(response.data, null, 2));
+      } else {
+        console.log(`📊 Response status: ${response.status}, candidates: ${response.data.candidates?.length || 0}`);
+      }
+
+      if (response.data.candidates && response.data.candidates[0] && response.data.candidates[0].content) {
+        // Success! Update rotation to next key for load balancing
+        currentApiKeyIndex = (keyIndex + 1) % API_KEYS.length;
+        keyFailureCount.delete(keyIndex); // Reset failure count on success
+        console.log(`✅ Success with API key ${keyIndex + 1}`);
+        return response.data.candidates[0].content.parts[0].text;
+      } else {
+        throw new Error('Unexpected response format from Gemini API');
+      }
+    } catch (err: any) {
+      // Increment failure count for this key
+      const failures = (keyFailureCount.get(keyIndex) || 0) + 1;
+      keyFailureCount.set(keyIndex, failures);
+      
+      const status = err.response?.status;
+      const errorMessage = err.response?.data?.error?.message || err.message;
+      
+      console.error(`❌ Key ${keyIndex + 1} failed (attempt ${failures}): ${status || 'Network'} - ${errorMessage?.substring(0, 100) || 'Unknown error'}`);
+      lastError = err;
+      
+      // Set cooldown for rate limiting and quota issues
+      if (status === 429 || (errorMessage && errorMessage.toLowerCase().includes('quota'))) {
+        const cooldownTime = Math.min(300000, 60000 * Math.pow(2, failures - 1)); // Exponential backoff, max 5 min
+        keyCooldowns.set(keyIndex, Date.now() + cooldownTime);
+        console.log(`🔄 API key ${keyIndex + 1} rate limited, cooldown: ${cooldownTime/1000}s`);
+        continue;
+      }
+      
+      // Set longer cooldown for authentication failures
+      if (status === 401 || status === 403) {
+        keyCooldowns.set(keyIndex, Date.now() + 600000); // 10 minute cooldown
+        console.log(`🔑 API key ${keyIndex + 1} auth failed, long cooldown applied`);
+        continue;
+      }
+      
+      // For network/server errors, try next key without cooldown
+      if (status >= 500 || !status) {
+        console.log(`🌐 Network/server error with key ${keyIndex + 1}, trying next...`);
+        continue;
+      }
+      
+      // For other client errors, try next key
+      continue;
     }
-  } catch (err: any) {
-    console.error("Gemini AI Error:", err.response?.data || err.message);
-    
-    // Handle rate limiting specifically
-    if (err.response?.status === 429) {
-      console.log("Rate limited by Gemini, using fallback generation");
-      throw new Error("Rate limited - using fallback");
-    }
-    
-    throw err;
   }
+  
+  // All API keys failed
+  console.error("❌ All Gemini API keys failed!");
+  throw lastError || new Error("All Gemini API keys have been exhausted or failed");
 }
 
 export async function explainCode(code: string, language: string = "javascript"): Promise<string> {
-  console.log('Explaining code using Gemini AI:', code.substring(0, 50) + '...');
+  const isDebugMode = process.env.NODE_ENV === 'development' && process.env.DEBUG_GEMINI_API === 'true';
+  if (isDebugMode) {
+    console.log('Explaining code using Gemini AI:', code.substring(0, 50) + '...');
+  } else {
+    console.log(`🔍 Explaining ${language} code (${code.length} chars)`);
+  }
   
   try {
     const prompt = `Please explain this ${language} code in simple, clear terms that a beginner could understand. Focus on what the code does, how it works, and any important patterns or concepts it demonstrates:\n\n\`\`\`${language}\n${code}\n\`\`\``;
@@ -69,7 +151,12 @@ export async function explainCode(code: string, language: string = "javascript")
 }
 
 export async function debugCode(code: string, language: string = "javascript", errorMsg?: string): Promise<string> {
-  console.log('Debugging code with Gemini AI. Error:', errorMsg);
+  const isDebugMode = process.env.NODE_ENV === 'development' && process.env.DEBUG_GEMINI_API === 'true';
+  if (isDebugMode) {
+    console.log('Debugging code with Gemini AI. Error:', errorMsg);
+  } else {
+    console.log(`🐛 Debugging ${language} code${errorMsg ? ' with error' : ''} (${code.length} chars)`);
+  }
   
   try {
     const prompt = `I have a ${language} code issue${errorMsg ? ` with this error: "${errorMsg}"` : ''}. Please analyze the code and provide specific debugging suggestions and solutions:\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nProvide clear, actionable steps to fix the issue.`;
@@ -82,7 +169,12 @@ export async function debugCode(code: string, language: string = "javascript", e
 }
 
 export async function generateCode(prompt: string, language: string = "javascript"): Promise<string> {
-  console.log('Generating code with Gemini AI for prompt:', prompt, 'Language:', language);
+  const isDebugMode = process.env.NODE_ENV === 'development' && process.env.DEBUG_GEMINI_API === 'true';
+  if (isDebugMode) {
+    console.log('Generating code with Gemini AI for prompt:', prompt, 'Language:', language);
+  } else {
+    console.log(`⚡ Generating ${language} code (prompt: ${prompt.length} chars)`);
+  }
   
   // If it's CSS generation request, use CSS generator
   if (language === 'css' || prompt.toLowerCase().includes('css') || prompt.toLowerCase().includes('styles')) {
@@ -237,7 +329,12 @@ Return complete modular code with proper imports/exports.`;
 }
 
 export async function chatWithAI(message: string, context?: string): Promise<string> {
-  console.log('Chatting with Gemini AI:', message);
+  const isDebugMode = process.env.NODE_ENV === 'development' && process.env.DEBUG_GEMINI_API === 'true';
+  if (isDebugMode) {
+    console.log('Chatting with Gemini AI:', message);
+  } else {
+    console.log(`💬 AI Chat request (${message.length} chars)${context ? ' with context' : ''}`);
+  }
   
   try {
     const contextPrefix = context ? `Context: ${context}\n\n` : '';
@@ -251,7 +348,12 @@ export async function chatWithAI(message: string, context?: string): Promise<str
 }
 
 async function generateCSSStyles(prompt: string): Promise<string> {
-  console.log('Generating CSS with Gemini AI for prompt:', prompt);
+  const isDebugMode = process.env.NODE_ENV === 'development' && process.env.DEBUG_GEMINI_API === 'true';
+  if (isDebugMode) {
+    console.log('Generating CSS with Gemini AI for prompt:', prompt);
+  } else {
+    console.log(`🎨 Generating CSS styles (prompt: ${prompt.length} chars)`);
+  }
   
   try {
     const cssPrompt = `Create modern, mobile-responsive CSS styles for: "${prompt}"
