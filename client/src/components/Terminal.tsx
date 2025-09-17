@@ -69,40 +69,32 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Enhanced scroll to bottom function that works with both Radix ScrollArea and mobile native scroll
+  // Enhanced scroll to bottom function that works with mobile native scroll and desktop ScrollArea
   const scrollToBottom = () => {
-    const isMobile = window.innerWidth <= 768;
+    const currentIsMobile = window.innerWidth <= 768;
     
     setTimeout(() => {
       if (scrollAreaRef.current) {
-        // For mobile, use multiple scroll strategies for better compatibility
-        if (isMobile) {
-          // Try multiple scroll targets for mobile
-          const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-          const scrollContainer = scrollAreaRef.current.querySelector('[data-testid="scroll-viewport"]') as HTMLElement;
-          
-          if (viewport) {
-            viewport.scrollTop = viewport.scrollHeight;
-            // Force smooth scroll behavior on mobile
-            viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-          }
-          if (scrollContainer && scrollContainer !== viewport) {
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-            scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
-          }
-          // Fallback to container itself
+        if (currentIsMobile) {
+          // Mobile: Direct scroll on native container
           scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+          // Also use smooth scroll for better UX
+          scrollAreaRef.current.scrollTo({ 
+            top: scrollAreaRef.current.scrollHeight, 
+            behavior: 'smooth' 
+          });
         } else {
-          // Desktop behavior
+          // Desktop: Scroll the Radix ScrollArea viewport
           const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
           if (viewport) {
             viewport.scrollTop = viewport.scrollHeight;
           } else {
+            // Fallback to root container
             scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
           }
         }
       }
-    }, isMobile ? 100 : 50); // Longer delay for mobile
+    }, currentIsMobile ? 150 : 50); // Longer delay for mobile to handle touch events
   };
 
   // Auto-focus input and scroll to bottom - improved for mobile and desktop
@@ -428,58 +420,90 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
         </div>
       </div>
 
-      {/* Terminal Content - Enhanced mobile scrolling with proper container */}
+      {/* Terminal Content - Mobile vs Desktop optimized scrolling */}
       <div className="flex-1 min-h-0 overflow-hidden relative">
-        <ScrollArea 
-          className="h-full w-full p-3" 
-          ref={scrollAreaRef}
-          style={{ 
-            /* Ensure proper height calculation */
-            height: '100%',
-            /* Mobile-specific touch scrolling */
-            WebkitOverflowScrolling: 'touch',
-            /* Prevent scroll chaining on mobile */
-            overscrollBehavior: 'contain'
-          }}
-        >
-        <div 
-          className="font-mono text-sm space-y-1 min-h-full"
-          style={{
-            /* Ensure content takes full height on mobile */
-            minHeight: '100%',
-            paddingBottom: '50px' /* Extra padding for mobile keyboard */
-          }}
-        >
-          {lines.map((line) => (
-            <div
-              key={line.id}
-              className={`${getLineColor(line.type)} leading-relaxed`}
-              data-testid={`terminal-line-${line.type}`}
+        {isMobile ? (
+          /* Mobile: Use native scrolling for better touch performance */
+          <div 
+            ref={scrollAreaRef}
+            className="h-full w-full p-3 overflow-y-auto overscroll-contain"
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              height: '100%',
+              scrollBehavior: 'smooth'
+            }}
+          >
+            <div 
+              className="font-mono text-sm space-y-1"
+              style={{
+                paddingBottom: '60px' /* Extra padding for mobile keyboard */
+              }}
             >
-              {line.content}
+              {lines.map((line) => (
+                <div
+                  key={line.id}
+                  className={`${getLineColor(line.type)} leading-relaxed`}
+                  data-testid={`terminal-line-${line.type}`}
+                >
+                  {line.content}
+                </div>
+              ))}
+              
+              {/* Command Input Line - Mobile optimized */}
+              <div className="flex items-center space-x-2 mt-2">
+                <span className="text-ide-success text-sm md:text-sm">{currentWorkingDir}$</span>
+                <Input
+                  ref={inputRef}
+                  value={currentCommand}
+                  onChange={(e) => setCurrentCommand(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isRunning}
+                  className="flex-1 bg-transparent border-none p-0 font-mono text-sm md:text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[32px] md:min-h-auto"
+                  placeholder={isRunning ? "Command running..." : "Type a command..."}
+                  data-testid="input-terminal-command"
+                  style={{ fontSize: 'max(16px, 1rem)' }} // Prevents zoom on mobile
+                />
+                {isRunning && (
+                  <Loader2 className="h-4 w-4 animate-spin text-ide-text-secondary" />
+                )}
+              </div>
             </div>
-          ))}
-          
-          {/* Command Input Line - Mobile optimized */}
-          <div className="flex items-center space-x-2 mt-2">
-            <span className="text-ide-success text-sm md:text-sm">{currentWorkingDir}$</span>
-            <Input
-              ref={inputRef}
-              value={currentCommand}
-              onChange={(e) => setCurrentCommand(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isRunning}
-              className="flex-1 bg-transparent border-none p-0 font-mono text-sm md:text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[32px] md:min-h-auto"
-              placeholder={isRunning ? "Command running..." : "Type a command..."}
-              data-testid="input-terminal-command"
-              style={{ fontSize: 'max(16px, 1rem)' }} // Prevents zoom on mobile
-            />
-            {isRunning && (
-              <Loader2 className="h-4 w-4 animate-spin text-ide-text-secondary" />
-            )}
           </div>
-        </div>
-        </ScrollArea>
+        ) : (
+          /* Desktop: Use ScrollArea component */
+          <ScrollArea className="h-full w-full p-3" ref={scrollAreaRef}>
+            <div className="font-mono text-sm space-y-1">
+              {lines.map((line) => (
+                <div
+                  key={line.id}
+                  className={`${getLineColor(line.type)} leading-relaxed`}
+                  data-testid={`terminal-line-${line.type}`}
+                >
+                  {line.content}
+                </div>
+              ))}
+              
+              {/* Command Input Line - Desktop */}
+              <div className="flex items-center space-x-2 mt-2">
+                <span className="text-ide-success text-sm md:text-sm">{currentWorkingDir}$</span>
+                <Input
+                  ref={inputRef}
+                  value={currentCommand}
+                  onChange={(e) => setCurrentCommand(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isRunning}
+                  className="flex-1 bg-transparent border-none p-0 font-mono text-sm md:text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[32px] md:min-h-auto"
+                  placeholder={isRunning ? "Command running..." : "Type a command..."}
+                  data-testid="input-terminal-command"
+                  style={{ fontSize: 'max(16px, 1rem)' }} // Prevents zoom on mobile
+                />
+                {isRunning && (
+                  <Loader2 className="h-4 w-4 animate-spin text-ide-text-secondary" />
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+        )}
       </div>
 
       {/* Terminal Status - Mobile responsive */}
