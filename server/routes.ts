@@ -1109,7 +1109,60 @@ export default App;`,
       const project = await mongoStorage.getProject(id);
       
       if (!project) {
-        return res.status(404).send('<h1>Project not found</h1>');
+        const notFoundHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Not Found</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      margin: 0; 
+      padding: 20px;
+      background: #f8f9fa;
+      color: #6c757d;
+      line-height: 1.6;
+      text-align: center;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      background: white;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 48px 32px;
+      max-width: 500px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+    .title {
+      color: #495057;
+      margin: 0 0 16px 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .message {
+      margin-bottom: 24px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📁</div>
+    <h1 class="title">Project Not Found</h1>
+    <p class="message">The project you're looking for doesn't exist or may have been deleted.</p>
+    <p class="message">Please check the project ID and try again.</p>
+  </div>
+</body>
+</html>`;
+        return res.status(404).send(notFoundHtml);
       }
 
       const files = await mongoStorage.getProjectFiles(id);
@@ -1132,6 +1185,37 @@ export default App;`,
         const cssFiles = files.filter((f: any) => f.name.endsWith('.css'));
         const jsFiles = files.filter((f: any) => f.name.endsWith('.js') && f.name !== 'package.json');
         
+        // Add error handling script to the beginning of head
+        const errorHandlingScript = `
+        <script>
+          window.addEventListener('error', function(e) {
+            const errorContainer = document.createElement('div');
+            errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #fdf2f2; color: #e74c3c; border-bottom: 2px solid #fecaca; padding: 16px; font-family: monospace; z-index: 10000; max-height: 200px; overflow-y: auto;';
+            errorContainer.innerHTML = '<strong>JavaScript Error:</strong><br>' + 
+              'File: ' + (e.filename || 'Unknown') + '<br>' +
+              'Line: ' + (e.lineno || 'Unknown') + '<br>' +
+              'Message: ' + (e.message || 'Unknown error');
+            document.body.insertBefore(errorContainer, document.body.firstChild);
+          });
+          
+          window.addEventListener('unhandledrejection', function(e) {
+            const errorContainer = document.createElement('div');
+            errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #fdf2f2; color: #e74c3c; border-bottom: 2px solid #fecaca; padding: 16px; font-family: monospace; z-index: 10000; max-height: 200px; overflow-y: auto;';
+            errorContainer.innerHTML = '<strong>Promise Rejection:</strong><br>' + 
+              'Reason: ' + (e.reason || 'Unknown error');
+            document.body.insertBefore(errorContainer, document.body.firstChild);
+          });
+        </script>`;
+        
+        // Inject error handling script first
+        if (htmlContent.includes('<head>')) {
+          htmlContent = htmlContent.replace('<head>', '<head>' + errorHandlingScript);
+        } else if (htmlContent.includes('</head>')) {
+          htmlContent = htmlContent.replace('</head>', errorHandlingScript + '</head>');
+        } else {
+          htmlContent = '<head>' + errorHandlingScript + '</head>' + htmlContent;
+        }
+        
         // Inject CSS and JS into HTML
         cssFiles.forEach(cssFile => {
           const cssTag = `<style>${cssFile.content || ''}</style>`;
@@ -1143,11 +1227,23 @@ export default App;`,
         });
         
         jsFiles.forEach(jsFile => {
-          const scriptTag = `<script>${jsFile.content || ''}</script>`;
+          // Wrap each JS file in try-catch for better error reporting
+          const wrappedJS = `
+          try {
+            ${jsFile.content || ''}
+          } catch (error) {
+            const errorContainer = document.createElement('div');
+            errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #fdf2f2; color: #e74c3c; border-bottom: 2px solid #fecaca; padding: 16px; font-family: monospace; z-index: 10000; max-height: 200px; overflow-y: auto;';
+            errorContainer.innerHTML = '<strong>Error in ${jsFile.name}:</strong><br>' + error.toString();
+            document.body.insertBefore(errorContainer, document.body.firstChild);
+            console.error('Error in ${jsFile.name}:', error);
+          }`;
+          
+          const scriptTag = `<script>${wrappedJS}</script>`;
           if (htmlContent.includes('</body>')) {
             htmlContent = htmlContent.replace('</body>', `${scriptTag}\n</body>`);
           } else {
-            htmlContent = `${htmlContent}<script>${jsFile.content || ''}</script>`;
+            htmlContent = `${htmlContent}<script>${wrappedJS}</script>`;
           }
         });
         
@@ -1404,7 +1500,96 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
       
     } catch (error) {
       console.error("Error generating preview:", error);
-      res.status(500).send('<h1>Failed to generate preview</h1>');
+      
+      // Create a detailed error page instead of generic message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : '';
+      
+      const errorHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview Error</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      margin: 0; 
+      padding: 20px;
+      background: #fdf2f2;
+      color: #e74c3c;
+      line-height: 1.6;
+    }
+    .error-container {
+      background: white;
+      border: 2px solid #fecaca;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+    .error-title {
+      color: #dc2626;
+      margin-top: 0;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .error-message {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+    }
+    .error-stack {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 12px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      color: #6c757d;
+    }
+    .help-text {
+      margin-top: 20px;
+      padding: 12px;
+      background: #e7f3ff;
+      border-left: 4px solid #0066cc;
+      border-radius: 4px;
+      color: #0066cc;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <h1 class="error-title">❌ Preview Generation Failed</h1>
+    <p>There was an error while generating the preview for this project.</p>
+    
+    <div class="error-message">
+      <strong>Error:</strong> ${errorMessage}
+    </div>
+    
+    ${errorStack ? `
+    <details>
+      <summary style="cursor: pointer; margin: 16px 0 8px 0; font-weight: bold;">Show Technical Details</summary>
+      <div class="error-stack">${errorStack}</div>
+    </details>
+    ` : ''}
+    
+    <div class="help-text">
+      <strong>💡 Possible solutions:</strong><br>
+      • Check if your code has syntax errors<br>
+      • Ensure all required files are present<br>
+      • Verify that your project structure is correct<br>
+      • Look for missing dependencies or imports
+    </div>
+  </div>
+</body>
+</html>`;
+      
+      res.status(500).send(errorHtml);
     }
   });
 
