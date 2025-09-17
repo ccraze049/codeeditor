@@ -5,8 +5,8 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 // Multiple hardcoded Gemini API keys for fallback mechanism
 const API_KEYS = [
   "AIzaSyCmda9m2FncVcxd7Gfr--gusDqw95YA3u4", // Primary key
-  "AIzaSyDXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // Secondary key (add real key here)
-  "AIzaSyEYYYYYYYYYYYYYYYYYYYYYYYYYYYYY", // Tertiary key (add real key here)  
+  "AIzaSyCNzm-bOgTEJGuntyHGIag2qkSbhYqYvpQ", // Secondary key (add real key here)
+  "", // Tertiary key (add real key here)  
   "AIzaSyFZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", // Quaternary key (add real key here)
 ].filter(key => key && !key.includes('XXX') && !key.includes('YYY') && !key.includes('ZZZ')); // Remove placeholder keys
 
