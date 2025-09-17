@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import './styles/App.css';
+import datetime
+now = datetime.datetime.now()
+print(now.strftime("%Y-%m-%d")) # 
+
+Example output: 2024 - 10 - 27(YYYY - MM - DD format)
 
 function App() {
   const [items, setItems] = useState(['Module A', 'Module B', 'Module C']);
@@ -29,10 +34,12 @@ function App() {
       </main>
 
       <footer className="app-footer">
+      
         <p>&copy; 2024 AI Generated App</p>
       </footer>
     </div>
-  );
+    
+  );s
 }
 
 export default App;

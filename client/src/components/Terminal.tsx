@@ -55,21 +55,54 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // Enhanced scroll to bottom function that works with both Radix ScrollArea and mobile native scroll
   const scrollToBottom = () => {
+    const isMobile = window.innerWidth <= 768;
+    
     setTimeout(() => {
       if (scrollAreaRef.current) {
-        // First try to find the Radix viewport element (desktop)
-        const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        if (viewport) {
-          viewport.scrollTop = viewport.scrollHeight;
-        } else {
-          // Fallback for mobile native scroll (when using native div instead of Radix)
+        // For mobile, use multiple scroll strategies for better compatibility
+        if (isMobile) {
+          // Try multiple scroll targets for mobile
+          const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+          const scrollContainer = scrollAreaRef.current.querySelector('[data-testid="scroll-viewport"]') as HTMLElement;
+          
+          if (viewport) {
+            viewport.scrollTop = viewport.scrollHeight;
+            // Force smooth scroll behavior on mobile
+            viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+          }
+          if (scrollContainer && scrollContainer !== viewport) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+          }
+          // Fallback to container itself
           scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        } else {
+          // Desktop behavior
+          const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+          if (viewport) {
+            viewport.scrollTop = viewport.scrollHeight;
+          } else {
+            scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+          }
         }
       }
-    }, 50);
+    }, isMobile ? 100 : 50); // Longer delay for mobile
   };
 
   // Auto-focus input and scroll to bottom - improved for mobile and desktop
@@ -395,10 +428,28 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
         </div>
       </div>
 
-      {/* Terminal Content - Wrapped with proper container for mobile scrolling */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <ScrollArea className="h-full w-full p-3" ref={scrollAreaRef}>
-        <div className="font-mono text-sm space-y-1">
+      {/* Terminal Content - Enhanced mobile scrolling with proper container */}
+      <div className="flex-1 min-h-0 overflow-hidden relative">
+        <ScrollArea 
+          className="h-full w-full p-3" 
+          ref={scrollAreaRef}
+          style={{ 
+            /* Ensure proper height calculation */
+            height: '100%',
+            /* Mobile-specific touch scrolling */
+            WebkitOverflowScrolling: 'touch',
+            /* Prevent scroll chaining on mobile */
+            overscrollBehavior: 'contain'
+          }}
+        >
+        <div 
+          className="font-mono text-sm space-y-1 min-h-full"
+          style={{
+            /* Ensure content takes full height on mobile */
+            minHeight: '100%',
+            paddingBottom: '50px' /* Extra padding for mobile keyboard */
+          }}
+        >
           {lines.map((line) => (
             <div
               key={line.id}
