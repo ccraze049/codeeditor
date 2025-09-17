@@ -69,27 +69,37 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Fixed scroll to bottom function for mobile and desktop
+  // Enhanced scroll to bottom function for mobile and desktop
   const scrollToBottom = () => {
     const currentIsMobile = window.innerWidth <= 768;
     
     setTimeout(() => {
       if (scrollAreaRef.current) {
         if (currentIsMobile) {
-          // Mobile: Direct scroll on native container - much simpler
+          // Enhanced mobile scrolling
           const scrollContainer = scrollAreaRef.current;
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          const targetScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
           
-          // Force smooth scroll with fallback
-          try {
-            scrollContainer.scrollTo({ 
-              top: scrollContainer.scrollHeight, 
-              behavior: 'smooth' 
-            });
-          } catch (e) {
-            // Fallback for older browsers
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-          }
+          // Use requestAnimationFrame for better performance
+          requestAnimationFrame(() => {
+            try {
+              // Try smooth scroll first
+              scrollContainer.scrollTo({ 
+                top: targetScrollTop, 
+                behavior: 'smooth' 
+              });
+              
+              // Fallback for immediate scroll if smooth fails
+              setTimeout(() => {
+                if (Math.abs(scrollContainer.scrollTop - targetScrollTop) > 50) {
+                  scrollContainer.scrollTop = targetScrollTop;
+                }
+              }, 100);
+            } catch (e) {
+              // Direct fallback
+              scrollContainer.scrollTop = targetScrollTop;
+            }
+          });
         } else {
           // Desktop: Find and scroll the Radix ScrollArea viewport
           const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
@@ -101,7 +111,7 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
           }
         }
       }
-    }, currentIsMobile ? 200 : 50); // Longer delay for mobile
+    }, currentIsMobile ? 100 : 50); // Optimized delay for mobile
   };
 
   // Auto-focus input and scroll to bottom - improved for mobile and desktop
@@ -427,23 +437,33 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
         </div>
       </div>
 
-      {/* Terminal Content - Fixed scrolling for all devices */}
+      {/* Terminal Content - Enhanced mobile scrolling */}
       <div className="flex-1 min-h-0 overflow-hidden relative">
         <div 
           ref={scrollAreaRef}
-          className={`h-full w-full p-3 ${isMobile ? 'overflow-y-auto overscroll-contain' : ''}`}
+          className={`h-full w-full ${isMobile ? 'overflow-y-scroll overscroll-contain p-3' : 'p-3'}`}
           style={{ 
-            WebkitOverflowScrolling: 'touch',
-            height: '100%',
-            scrollBehavior: 'smooth',
-            /* Prevent black box overlay on mobile */
-            position: 'relative',
-            zIndex: 1,
-            /* Better mobile viewport handling */
-            ...(isMobile && {
+            ...(isMobile ? {
+              /* Enhanced mobile scrolling */
+              WebkitOverflowScrolling: 'touch',
+              height: '100%',
               maxHeight: '100%',
-              overflowY: 'auto',
-              touchAction: 'pan-y'
+              overflowY: 'scroll',
+              touchAction: 'pan-y',
+              scrollBehavior: 'smooth',
+              position: 'relative',
+              zIndex: 1,
+              /* Prevent scroll bounce and improve performance */
+              overscrollBehavior: 'contain',
+              /* Better momentum scrolling on iOS */
+              transform: 'translateZ(0)',
+              willChange: 'scroll-position'
+            } : {
+              WebkitOverflowScrolling: 'touch',
+              height: '100%',
+              scrollBehavior: 'smooth',
+              position: 'relative',
+              zIndex: 1
             })
           }}
         >
@@ -485,10 +505,13 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
             <div 
               className="font-mono text-sm space-y-1"
               style={{
-                /* Fix mobile layout issues */
-                minHeight: '100%',
-                paddingBottom: '80px', /* Extra space for mobile keyboard */
-                position: 'relative'
+                /* Enhanced mobile layout */
+                minHeight: 'calc(100vh - 200px)', /* Better height calculation */
+                paddingBottom: '100px', /* Extra space for mobile keyboard and input */
+                position: 'relative',
+                /* Improve touch scrolling */
+                touchAction: 'pan-y',
+                overflowY: 'visible'
               }}
             >
               {lines.map((line) => (
@@ -506,19 +529,24 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
                 </div>
               ))}
               
-              {/* Command Input Line - Mobile Fixed */}
+              {/* Command Input Line - Enhanced Mobile */}
               <div 
                 className="flex items-center space-x-2 mt-4 py-3 bg-ide-bg-primary"
                 style={{
-                  /* Fix mobile input area */
+                  /* Enhanced mobile input area */
                   position: 'sticky',
                   bottom: '0',
                   left: '0',
                   right: '0',
-                  zIndex: 10,
+                  zIndex: 100,
                   borderTop: '1px solid var(--ide-border)',
                   margin: '0 -12px',
-                  padding: '12px'
+                  padding: '12px',
+                  /* Prevent input from being covered by virtual keyboard */
+                  boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
+                  backdropFilter: 'blur(8px)',
+                  /* Ensure input stays visible */
+                  transform: 'translateZ(0)'
                 }}
               >
                 <span className="text-ide-success text-sm flex-shrink-0">{currentWorkingDir}$</span>
