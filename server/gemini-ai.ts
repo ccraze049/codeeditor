@@ -6,8 +6,8 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 const API_KEYS = [
   "AIzaSyCmda9m2FncVcxd7Gfr--gusDqw95YA3u4", // Primary key
   "AIzaSyCNzm-bOgTEJGuntyHGIag2qkSbhYqYvpQ", // Secondary key (add real key here)
-  "", // Tertiary key (add real key here)  
-  "AIzaSyFZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", // Quaternary key (add real key here)
+  "AIzaSyBZqkvKfBvQ2TmTOv3q4KhbPiHJh37vDpQ", // Tertiary key (add real key here)  
+  "AIzaSyDz3YIF97oOAc6DfKDESwV1Kv_PqQnOvFQ", // Quaternary key (add real key here)
 ].filter(key => key && !key.includes('XXX') && !key.includes('YYY') && !key.includes('ZZZ')); // Remove placeholder keys
 
 // Track current API key index for rotation and key cooldowns
