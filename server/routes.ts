@@ -1568,9 +1568,70 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
   <script type="text/babel">
     const { useState, useEffect } = React;
     
-    // Enhanced error handling for React components
+    // Enhanced error handling for React components with cross-browser stack parsing
+    function extractFileAndLineFromStack(error) {
+      if (!error || !error.stack) return { fileName: 'Unknown', lineNumber: 'Unknown' };
+      
+      const stackLines = error.stack.split('\\n');
+      for (const line of stackLines) {
+        // Chrome/Firefox: "at functionName (filename:line:col)" or "at filename:line:col"
+        const chromeMatch = line.match(/^(?:\\s*at\\s+.*\\()?(.+?):(\\d+):(\\d+)\\)?$/);
+        if (chromeMatch) {
+          const fileName = chromeMatch[1];
+          const lineNumber = chromeMatch[2];
+          
+          // Check if this is one of our project files
+          if (fileName && !fileName.startsWith('http') && !fileName.includes('node_modules') && 
+              (fileName.includes('/') || fileName.endsWith('.js') || fileName.endsWith('.jsx'))) {
+            return {
+              fileName: decodeURI(fileName),
+              lineNumber: lineNumber
+            };
+          }
+        }
+        
+        // Safari: "@ filename:line:col"
+        const safariMatch = line.match(/^\\s*@\\s*(.+?):(\\d+):(\\d+)$/);
+        if (safariMatch) {
+          const fileName = safariMatch[1];
+          const lineNumber = safariMatch[2];
+          
+          if (fileName && !fileName.startsWith('http') && !fileName.includes('node_modules') &&
+              (fileName.includes('/') || fileName.endsWith('.js') || fileName.endsWith('.jsx'))) {
+            return {
+              fileName: decodeURI(fileName),
+              lineNumber: lineNumber
+            };
+          }
+        }
+        
+        // Fallback: look for blob: URLs with line numbers
+        const blobMatch = line.match(/blob:[^:]+:(\\d+):(\\d+)/);
+        if (blobMatch) {
+          return {
+            fileName: 'React Component',
+            lineNumber: blobMatch[1]
+          };
+        }
+      }
+      
+      return { fileName: 'Unknown', lineNumber: 'Unknown' };
+    }
+    
     window.addEventListener('error', function(e) {
       if (document.getElementById('root')) {
+        let fileName = e.filename || 'Unknown';
+        let lineNumber = e.lineno || 'Unknown';
+        
+        // If error object is available, try to extract better info from stack
+        if (e.error) {
+          const stackInfo = extractFileAndLineFromStack(e.error);
+          if (stackInfo.fileName !== 'Unknown') {
+            fileName = stackInfo.fileName;
+            lineNumber = stackInfo.lineNumber;
+          }
+        }
+        
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement('div', {
           style: { 
@@ -1588,13 +1649,13 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
             React.createElement('strong', {key: 'label'}, 'Error: '),
             React.createElement('span', {key: 'msg'}, e.message || 'Unknown error')
           ]),
-          e.filename ? React.createElement('div', {key: 'file', style: {marginBottom: '8px', fontSize: '14px'}}, [
+          fileName !== 'Unknown' ? React.createElement('div', {key: 'file', style: {marginBottom: '8px', fontSize: '14px'}}, [
             React.createElement('strong', {key: 'flabel'}, 'File: '),
-            React.createElement('code', {key: 'fname'}, e.filename)
+            React.createElement('code', {key: 'fname'}, fileName)
           ]) : null,
-          e.lineno ? React.createElement('div', {key: 'line', style: {marginBottom: '16px', fontSize: '14px'}}, [
+          lineNumber !== 'Unknown' ? React.createElement('div', {key: 'line', style: {marginBottom: '16px', fontSize: '14px'}}, [
             React.createElement('strong', {key: 'llabel'}, 'Line: '),
-            React.createElement('code', {key: 'lnum'}, e.lineno)
+            React.createElement('code', {key: 'lnum'}, lineNumber)
           ]) : null,
           React.createElement('div', {key: 'help', style: {padding: '12px', background: '#e7f3ff', border: '1px solid #0066cc', borderRadius: '4px', fontSize: '14px', color: '#0066cc'}}, [
             React.createElement('strong', {key: 'htitle'}, '💡 Tips: '),
@@ -1611,6 +1672,16 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
     
     window.addEventListener('unhandledrejection', function(e) {
       if (document.getElementById('root')) {
+        let fileName = 'Unknown';
+        let lineNumber = 'Unknown';
+        
+        // Try to extract file info from rejection reason if it's an error
+        if (e.reason && e.reason.stack) {
+          const stackInfo = extractFileAndLineFromStack(e.reason);
+          fileName = stackInfo.fileName;
+          lineNumber = stackInfo.lineNumber;
+        }
+        
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement('div', {
           style: { 
@@ -1624,10 +1695,18 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
           }
         }, [
           React.createElement('h3', {key: 'title', style: {marginTop: 0, fontSize: '20px'}}, '❌ Promise Rejection'),
-          React.createElement('div', {key: 'details'}, [
+          React.createElement('div', {key: 'details', style: {marginBottom: '16px'}}, [
             React.createElement('strong', {key: 'label'}, 'Reason: '),
             React.createElement('span', {key: 'reason'}, String(e.reason || 'Unknown error'))
-          ])
+          ]),
+          fileName !== 'Unknown' ? React.createElement('div', {key: 'file', style: {marginBottom: '8px', fontSize: '14px'}}, [
+            React.createElement('strong', {key: 'flabel'}, 'File: '),
+            React.createElement('code', {key: 'fname'}, fileName)
+          ]) : null,
+          lineNumber !== 'Unknown' ? React.createElement('div', {key: 'line', style: {marginBottom: '16px', fontSize: '14px'}}, [
+            React.createElement('strong', {key: 'llabel'}, 'Line: '),
+            React.createElement('code', {key: 'lnum'}, lineNumber)
+          ]) : null
         ]));
       }
     });
