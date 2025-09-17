@@ -1227,23 +1227,11 @@ export default App;`,
         });
         
         jsFiles.forEach(jsFile => {
-          // Wrap each JS file in try-catch for better error reporting
-          const wrappedJS = `
-          try {
-            ${jsFile.content || ''}
-          } catch (error) {
-            const errorContainer = document.createElement('div');
-            errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #fdf2f2; color: #e74c3c; border-bottom: 2px solid #fecaca; padding: 16px; font-family: monospace; z-index: 10000; max-height: 200px; overflow-y: auto;';
-            errorContainer.innerHTML = '<strong>Error in ${jsFile.name}:</strong><br>' + error.toString();
-            document.body.insertBefore(errorContainer, document.body.firstChild);
-            console.error('Error in ${jsFile.name}:', error);
-          }`;
-          
-          const scriptTag = `<script>${wrappedJS}</script>`;
+          const scriptTag = `<script>${jsFile.content || ''}</script>`;
           if (htmlContent.includes('</body>')) {
             htmlContent = htmlContent.replace('</body>', `${scriptTag}\n</body>`);
           } else {
-            htmlContent = `${htmlContent}<script>${wrappedJS}</script>`;
+            htmlContent = `${htmlContent}<script>${jsFile.content || ''}</script>`;
           }
         });
         
@@ -1462,6 +1450,70 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
   <script type="text/babel">
     const { useState, useEffect } = React;
     
+    // Enhanced error handling for React components
+    window.addEventListener('error', function(e) {
+      if (document.getElementById('root')) {
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement('div', {
+          style: { 
+            padding: '24px', 
+            background: '#fdf2f2', 
+            color: '#e74c3c', 
+            border: '2px solid #fecaca',
+            borderRadius: '8px',
+            margin: '20px',
+            fontFamily: 'system-ui, sans-serif'
+          }
+        }, [
+          React.createElement('h3', {key: 'title', style: {marginTop: 0, fontSize: '20px'}}, '❌ React Component Error'),
+          React.createElement('div', {key: 'details', style: {marginBottom: '16px'}}, [
+            React.createElement('strong', {key: 'label'}, 'Error: '),
+            React.createElement('span', {key: 'msg'}, e.message || 'Unknown error')
+          ]),
+          e.filename ? React.createElement('div', {key: 'file', style: {marginBottom: '8px', fontSize: '14px'}}, [
+            React.createElement('strong', {key: 'flabel'}, 'File: '),
+            React.createElement('code', {key: 'fname'}, e.filename)
+          ]) : null,
+          e.lineno ? React.createElement('div', {key: 'line', style: {marginBottom: '16px', fontSize: '14px'}}, [
+            React.createElement('strong', {key: 'llabel'}, 'Line: '),
+            React.createElement('code', {key: 'lnum'}, e.lineno)
+          ]) : null,
+          React.createElement('div', {key: 'help', style: {padding: '12px', background: '#e7f3ff', border: '1px solid #0066cc', borderRadius: '4px', fontSize: '14px', color: '#0066cc'}}, [
+            React.createElement('strong', {key: 'htitle'}, '💡 Tips: '),
+            React.createElement('br', {key: 'br1'}),
+            '• Check your component syntax',
+            React.createElement('br', {key: 'br2'}),
+            '• Look for missing imports or typos',
+            React.createElement('br', {key: 'br3'}),
+            '• Verify prop names and types'
+          ])
+        ]));
+      }
+    });
+    
+    window.addEventListener('unhandledrejection', function(e) {
+      if (document.getElementById('root')) {
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement('div', {
+          style: { 
+            padding: '24px', 
+            background: '#fdf2f2', 
+            color: '#e74c3c', 
+            border: '2px solid #fecaca',
+            borderRadius: '8px',
+            margin: '20px',
+            fontFamily: 'system-ui, sans-serif'
+          }
+        }, [
+          React.createElement('h3', {key: 'title', style: {marginTop: 0, fontSize: '20px'}}, '❌ Promise Rejection'),
+          React.createElement('div', {key: 'details'}, [
+            React.createElement('strong', {key: 'label'}, 'Reason: '),
+            React.createElement('span', {key: 'reason'}, String(e.reason || 'Unknown error'))
+          ])
+        ]));
+      }
+    });
+    
     try {
       // All additional components first
       ${additionalComponents}
@@ -1477,17 +1529,27 @@ const { useState, useEffect, useMemo, useRef, useReducer, useCallback, useContex
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement('div', {
         style: { 
-          padding: '20px', 
+          padding: '24px', 
           background: '#fdf2f2', 
           color: '#e74c3c', 
-          border: '1px solid #fecaca',
+          border: '2px solid #fecaca',
           borderRadius: '8px',
-          margin: '20px'
+          margin: '20px',
+          fontFamily: 'system-ui, sans-serif'
         }
       }, [
-        React.createElement('h3', {key: 'title'}, 'Preview Error'),
-        React.createElement('p', {key: 'message'}, 'There was an error rendering this React component.'),
-        React.createElement('pre', {key: 'error', style: {fontSize: '12px', overflow: 'auto'}}, error.toString())
+        React.createElement('h3', {key: 'title', style: {marginTop: 0, fontSize: '20px'}}, '❌ React Render Error'),
+        React.createElement('div', {key: 'message', style: {marginBottom: '16px'}}, 'There was an error rendering this React component.'),
+        React.createElement('div', {key: 'error-details', style: {background: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '4px', padding: '12px', fontSize: '12px', fontFamily: 'monospace', overflow: 'auto', color: '#6c757d'}}, error.toString()),
+        React.createElement('div', {key: 'help', style: {marginTop: '16px', padding: '12px', background: '#e7f3ff', border: '1px solid #0066cc', borderRadius: '4px', fontSize: '14px', color: '#0066cc'}}, [
+          React.createElement('strong', {key: 'htitle'}, '💡 Common fixes: '),
+          React.createElement('br', {key: 'br1'}),
+          '• Check for syntax errors in your component',
+          React.createElement('br', {key: 'br2'}),
+          '• Verify that all props are properly defined',
+          React.createElement('br', {key: 'br3'}),
+          '• Make sure you export your App component'
+        ])
       ]));
     }
   </script>
