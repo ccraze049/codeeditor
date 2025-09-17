@@ -433,11 +433,11 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       {/* Terminal Content - Simple Mobile Scrolling */}
       <div className="flex-1 min-h-0 relative">
         {isMobile ? (
-          <div className="h-full w-full flex flex-col relative">
-            {/* Mobile Terminal Content */}
+          <div className="h-full w-full flex flex-col">
+            {/* Mobile Terminal Content with proper bottom padding for input */}
             <div 
               ref={scrollAreaRef}
-              className="flex-1 overflow-y-auto overscroll-contain p-3"
+              className="flex-1 overflow-y-auto overscroll-contain p-3 pb-16"
               style={{ 
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-y'
@@ -456,12 +456,10 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
               </div>
             </div>
             
-            {/* Mobile Input - Sticky at container bottom */}
+            {/* Mobile Input - Fixed at bottom without covering content */}
             <div 
-              className="flex-shrink-0 bg-ide-bg-primary border-t border-ide-border p-3"
+              className="absolute bottom-0 left-0 right-0 bg-ide-bg-primary border-t border-ide-border p-3"
               style={{ 
-                position: 'sticky',
-                bottom: 0,
                 zIndex: 10
               }}
             >
