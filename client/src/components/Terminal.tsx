@@ -69,37 +69,16 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Enhanced scroll to bottom function for mobile and desktop
+  // Simple and effective scroll to bottom function
   const scrollToBottom = () => {
     const currentIsMobile = window.innerWidth <= 768;
     
     setTimeout(() => {
       if (scrollAreaRef.current) {
         if (currentIsMobile) {
-          // Enhanced mobile scrolling
+          // Mobile: Direct scroll to bottom
           const scrollContainer = scrollAreaRef.current;
-          const targetScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
-          
-          // Use requestAnimationFrame for better performance
-          requestAnimationFrame(() => {
-            try {
-              // Try smooth scroll first
-              scrollContainer.scrollTo({ 
-                top: targetScrollTop, 
-                behavior: 'smooth' 
-              });
-              
-              // Fallback for immediate scroll if smooth fails
-              setTimeout(() => {
-                if (Math.abs(scrollContainer.scrollTop - targetScrollTop) > 50) {
-                  scrollContainer.scrollTop = targetScrollTop;
-                }
-              }, 100);
-            } catch (e) {
-              // Direct fallback
-              scrollContainer.scrollTop = targetScrollTop;
-            }
-          });
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
         } else {
           // Desktop: Find and scroll the Radix ScrollArea viewport
           const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
@@ -111,7 +90,7 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
           }
         }
       }
-    }, currentIsMobile ? 100 : 50); // Optimized delay for mobile
+    }, currentIsMobile ? 50 : 50);
   };
 
   // Auto-focus input and scroll to bottom - improved for mobile and desktop
@@ -437,37 +416,66 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
         </div>
       </div>
 
-      {/* Terminal Content - Enhanced mobile scrolling */}
-      <div className="flex-1 min-h-0 overflow-hidden relative">
-        <div 
-          ref={scrollAreaRef}
-          className={`h-full w-full ${isMobile ? 'overflow-y-scroll overscroll-contain p-3' : 'p-3'}`}
-          style={{ 
-            ...(isMobile ? {
-              /* Enhanced mobile scrolling */
+      {/* Terminal Content - Simple Mobile Scrolling */}
+      <div className="flex-1 min-h-0 relative">
+        {isMobile ? (
+          <div 
+            ref={scrollAreaRef}
+            className="h-full w-full overflow-y-auto overscroll-contain p-3"
+            style={{ 
               WebkitOverflowScrolling: 'touch',
-              height: '100%',
-              maxHeight: '100%',
-              overflowY: 'scroll',
               touchAction: 'pan-y',
-              scrollBehavior: 'smooth',
-              position: 'relative',
-              zIndex: 1,
-              /* Prevent scroll bounce and improve performance */
-              overscrollBehavior: 'contain',
-              /* Better momentum scrolling on iOS */
-              transform: 'translateZ(0)',
-              willChange: 'scroll-position'
-            } : {
+              height: '100%'
+            }}
+          >
+            <div className="font-mono text-sm space-y-1 pb-20">
+              {lines.map((line) => (
+                <div
+                  key={line.id}
+                  className={`${getLineColor(line.type)} leading-relaxed break-words`}
+                  data-testid={`terminal-line-${line.type}`}
+                >
+                  {line.content}
+                </div>
+              ))}
+            </div>
+            
+            {/* Mobile Input - Fixed at bottom */}
+            <div 
+              className="fixed bottom-0 left-0 right-0 bg-ide-bg-primary border-t border-ide-border p-3"
+              style={{ zIndex: 1000 }}
+            >
+              <div className="flex items-center space-x-2">
+                <span className="text-ide-success text-sm flex-shrink-0">{currentWorkingDir}$</span>
+                <Input
+                  ref={inputRef}
+                  value={currentCommand}
+                  onChange={(e) => setCurrentCommand(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isRunning}
+                  className="flex-1 bg-transparent border-none p-2 font-mono text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+                  placeholder={isRunning ? "Command running..." : "Type a command..."}
+                  data-testid="input-terminal-command"
+                  style={{ fontSize: 'max(16px, 1rem)' }}
+                />
+                {isRunning && (
+                  <Loader2 className="h-4 w-4 animate-spin text-ide-text-secondary flex-shrink-0" />
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div 
+            ref={scrollAreaRef}
+            className="h-full w-full p-3"
+            style={{ 
               WebkitOverflowScrolling: 'touch',
               height: '100%',
               scrollBehavior: 'smooth',
               position: 'relative',
               zIndex: 1
-            })
-          }}
-        >
-          {!isMobile && (
+            }}
+          >
             <ScrollArea className="h-full w-full">
               <div className="font-mono text-sm space-y-1 pb-4">
                 {lines.map((line) => (
@@ -499,78 +507,8 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
                 </div>
               </div>
             </ScrollArea>
-          )}
-          
-          {isMobile && (
-            <div 
-              className="font-mono text-sm space-y-1"
-              style={{
-                /* Enhanced mobile layout */
-                minHeight: 'calc(100vh - 200px)', /* Better height calculation */
-                paddingBottom: '100px', /* Extra space for mobile keyboard and input */
-                position: 'relative',
-                /* Improve touch scrolling */
-                touchAction: 'pan-y',
-                overflowY: 'visible'
-              }}
-            >
-              {lines.map((line) => (
-                <div
-                  key={line.id}
-                  className={`${getLineColor(line.type)} leading-relaxed break-words`}
-                  data-testid={`terminal-line-${line.type}`}
-                  style={{
-                    /* Prevent text overflow causing layout issues */
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word'
-                  }}
-                >
-                  {line.content}
-                </div>
-              ))}
-              
-              {/* Command Input Line - Enhanced Mobile */}
-              <div 
-                className="flex items-center space-x-2 mt-4 py-3 bg-ide-bg-primary"
-                style={{
-                  /* Enhanced mobile input area */
-                  position: 'sticky',
-                  bottom: '0',
-                  left: '0',
-                  right: '0',
-                  zIndex: 100,
-                  borderTop: '1px solid var(--ide-border)',
-                  margin: '0 -12px',
-                  padding: '12px',
-                  /* Prevent input from being covered by virtual keyboard */
-                  boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
-                  backdropFilter: 'blur(8px)',
-                  /* Ensure input stays visible */
-                  transform: 'translateZ(0)'
-                }}
-              >
-                <span className="text-ide-success text-sm flex-shrink-0">{currentWorkingDir}$</span>
-                <Input
-                  ref={inputRef}
-                  value={currentCommand}
-                  onChange={(e) => setCurrentCommand(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={isRunning}
-                  className="flex-1 bg-transparent border-none p-2 font-mono text-sm text-ide-text-primary focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[40px]"
-                  placeholder={isRunning ? "Command running..." : "Type a command..."}
-                  data-testid="input-terminal-command"
-                  style={{ 
-                    fontSize: 'max(16px, 1rem)', /* Prevents zoom on mobile */
-                    backgroundColor: 'transparent'
-                  }}
-                />
-                {isRunning && (
-                  <Loader2 className="h-4 w-4 animate-spin text-ide-text-secondary flex-shrink-0" />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Terminal Status - Mobile responsive */}
