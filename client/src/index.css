@@ -145,30 +145,26 @@
     background-color: var(--ide-bg-primary);
     color: var(--ide-text-primary);
     /* Mobile scrolling improvements */
-    -webkit-overflow-scrolling: touch;
     overscroll-behavior: auto;
-    scroll-behavior: smooth;
   }
 
   /* Improved mobile touch scrolling */
   html, body {
     overflow-x: hidden;
-    height: 100%;
     width: 100%;
   }
 
   /* Ensure proper touch scrolling on mobile */
   @media (max-width: 768px) {
-    * {
-      -webkit-overflow-scrolling: touch;
-    }
-    
     /* Fix iOS Safari scrolling issues */
     body {
       position: relative;
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
       touch-action: manipulation;
+    }
+    
+    /* Scoped momentum scrolling for scroll containers */
+    [data-radix-scroll-area-viewport] {
+      -webkit-overflow-scrolling: touch;
     }
     
     /* Prevent horizontal scrolling on mobile */
