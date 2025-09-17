@@ -1216,6 +1216,25 @@ export default App;`,
           htmlContent = '<head>' + errorHandlingScript + '</head>' + htmlContent;
         }
         
+        // Remove existing script src references to prevent external JS file requests
+        const jsFileNames = jsFiles.map(jsFile => jsFile.name);
+        jsFileNames.forEach(fileName => {
+          // Remove script tags that reference this file
+          const scriptSrcRegex = new RegExp(`<script[^>]*src\\s*=\\s*['"]\\.?/?${fileName.replace('.', '\\.')}['"][^>]*>\\s*</script>`, 'gi');
+          htmlContent = htmlContent.replace(scriptSrcRegex, '');
+          
+          // Also remove self-closing script tags
+          const scriptSelfClosingRegex = new RegExp(`<script[^>]*src\\s*=\\s*['"]\\.?/?${fileName.replace('.', '\\.')}['"][^>]*/>`, 'gi');
+          htmlContent = htmlContent.replace(scriptSelfClosingRegex, '');
+        });
+        
+        // Remove existing link rel="stylesheet" references to prevent external CSS file requests
+        const cssFileNames = cssFiles.map(cssFile => cssFile.name);
+        cssFileNames.forEach(fileName => {
+          const linkRegex = new RegExp(`<link[^>]*href\\s*=\\s*['"]\\.?/?${fileName.replace('.', '\\.')}['"][^>]*>`, 'gi');
+          htmlContent = htmlContent.replace(linkRegex, '');
+        });
+        
         // Inject CSS and JS into HTML
         cssFiles.forEach(cssFile => {
           const cssTag = `<style>${cssFile.content || ''}</style>`;
