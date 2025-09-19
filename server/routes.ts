@@ -705,6 +705,68 @@ export default App;`,
     }
   });
 
+  // Rename file or folder
+  app.put('/api/files/:id/rename', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { newName } = req.body;
+      
+      if (!newName || !newName.trim()) {
+        return res.status(400).json({ message: "New name is required" });
+      }
+
+      // Check file access (includes admin bypass and project ownership)
+      const access = await assertFileWriteAccess(req, id);
+      if (!access.ok) {
+        return res.status(access.code || 403).json({ message: access.msg || "Access denied" });
+      }
+
+      const file = await mongoStorage.getFile(id);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Build new path
+      const pathParts = file.path.split('/');
+      pathParts[pathParts.length - 1] = newName.trim();
+      const newPath = pathParts.join('/');
+
+      // Check if a file with the new path already exists in the same project
+      const existingFile = await mongoStorage.getFileByPath(file.projectId, newPath);
+      if (existingFile && existingFile.id !== id) {
+        return res.status(409).json({ message: "A file or folder with this name already exists" });
+      }
+
+      // If it's a folder, we need to update all child files/folders too
+      if (file.isFolder) {
+        const allFiles = await mongoStorage.getProjectFiles(file.projectId);
+        const childFiles = allFiles.filter((f: any) => 
+          f.path.startsWith(file.path + '/') && f.id !== id
+        );
+
+        // Update all child files with new paths
+        for (const childFile of childFiles) {
+          const updatedChildPath = childFile.path.replace(file.path + '/', newPath + '/');
+          await mongoStorage.updateFile(childFile.id, { path: updatedChildPath });
+        }
+      }
+
+      // Update the file itself
+      const updatedFile = await mongoStorage.updateFile(id, { 
+        name: newName.trim(), 
+        path: newPath 
+      });
+
+      res.json({ 
+        message: "File renamed successfully", 
+        file: updatedFile 
+      });
+    } catch (error) {
+      console.error("Error renaming file:", error);
+      res.status(500).json({ message: "Failed to rename file" });
+    }
+  });
+
   // Fix React webpack projects by adding missing src files
   app.post('/api/projects/:id/fix-react', isAuthenticated, async (req: any, res) => {
     try {
@@ -1090,9 +1152,35 @@ export default App;`,
 
       await mongoStorage.updateProject(id, { isPublic: true });
       
-      // Generate share URL (using REPLIT_DOMAINS for the domain)
-      const domains = process.env.REPLIT_DOMAINS?.split(',') || ['localhost:5000'];
-      const shareUrl = `https://${domains[0]}/shared/${id}`;
+      // Generate share URL - Use deployment URL if available, fallback to localhost for development
+      let baseUrl = 'localhost:5000';
+      
+      // Check for various deployment environment variables
+      if (process.env.RENDER_EXTERNAL_URL) {
+        // Render deployment
+        baseUrl = process.env.RENDER_EXTERNAL_URL.replace('https://', '').replace('http://', '');
+      } else if (process.env.RAILWAY_STATIC_URL) {
+        // Railway deployment
+        baseUrl = process.env.RAILWAY_STATIC_URL.replace('https://', '').replace('http://', '');
+      } else if (process.env.VERCEL_URL) {
+        // Vercel deployment
+        baseUrl = process.env.VERCEL_URL;
+      } else if (process.env.NETLIFY_URL) {
+        // Netlify deployment
+        baseUrl = process.env.NETLIFY_URL.replace('https://', '').replace('http://', '');
+      } else if (process.env.HEROKU_APP_NAME) {
+        // Heroku deployment
+        baseUrl = `${process.env.HEROKU_APP_NAME}.herokuapp.com`;
+      } else if (process.env.REPLIT_DOMAINS) {
+        // Replit deployment
+        baseUrl = process.env.REPLIT_DOMAINS.split(',')[0];
+      } else if (process.env.DEPLOYMENT_URL) {
+        // Custom deployment URL
+        baseUrl = process.env.DEPLOYMENT_URL.replace('https://', '').replace('http://', '');
+      }
+      
+      const shareUrl = `https://${baseUrl}/shared/${id}`;
+      console.log(`Generated share URL: ${shareUrl}`);
       
       res.json({ shareUrl });
     } catch (error) {

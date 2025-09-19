@@ -36,6 +36,8 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
   const [newItemType, setNewItemType] = useState<'file' | 'folder'>('file');
   const [newItemName, setNewItemName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -185,6 +187,100 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
     },
   });
 
+  const renameFileMutation = useMutation({
+    mutationFn: async (data: { fileId: string; newName: string }) => {
+      const response = await apiRequest("PUT", `/api/files/${data.fileId}/rename`, { 
+        newName: data.newName 
+      });
+      return await response.json();
+    },
+    onMutate: async ({ fileId, newName }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      
+      // Snapshot the previous value
+      const previousFiles = queryClient.getQueryData(["/api/projects", projectId, "files"]);
+      
+      // Optimistically update the file name and path
+      queryClient.setQueryData(["/api/projects", projectId, "files"], (old: any) => {
+        if (!old) return [];
+        
+        return old.map((file: any) => {
+          if (file.id === fileId) {
+            const pathParts = file.path.split('/');
+            pathParts[pathParts.length - 1] = newName;
+            const newPath = pathParts.join('/');
+            
+            return {
+              ...file,
+              name: newName,
+              path: newPath
+            };
+          }
+          
+          // If it's a folder being renamed, update child paths too
+          const renamingFile = old.find((f: any) => f.id === fileId);
+          if (renamingFile?.isFolder && file.path.startsWith(renamingFile.path + '/')) {
+            const pathParts = renamingFile.path.split('/');
+            pathParts[pathParts.length - 1] = newName;
+            const newParentPath = pathParts.join('/');
+            const updatedChildPath = file.path.replace(renamingFile.path + '/', newParentPath + '/');
+            
+            return {
+              ...file,
+              path: updatedChildPath
+            };
+          }
+          
+          return file;
+        });
+      });
+      
+      return { previousFiles };
+    },
+    onSuccess: () => {
+      setRenamingFileId(null);
+      setRenameValue("");
+      toast({ title: "File renamed successfully" });
+    },
+    onError: (error, variables, context) => {
+      // Handle unauthorized errors first
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
+      // Rollback to previous state on error
+      if (context?.previousFiles) {
+        queryClient.setQueryData(["/api/projects", projectId, "files"], context.previousFiles);
+      }
+      
+      // Check for specific error messages
+      let errorMessage = "Failed to rename file";
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = error.message as string;
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      // Always refresh to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+  });
+
   const handleCreateItem = async () => {
     if (!newItemName.trim()) return;
     
@@ -226,6 +322,38 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
       newExpanded.add(parentId);
       setExpandedFolders(newExpanded);
     }
+  };
+
+  const startRenaming = (fileId: string, currentName: string) => {
+    setRenamingFileId(fileId);
+    setRenameValue(currentName);
+    // Cancel any ongoing creation
+    setIsCreating(false);
+    setNewItemParent(null);
+    setNewItemName("");
+  };
+
+  const handleRename = () => {
+    if (!renameValue.trim() || !renamingFileId) return;
+    
+    renameFileMutation.mutate({
+      fileId: renamingFileId,
+      newName: renameValue.trim()
+    });
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleRename();
+    } else if (e.key === 'Escape') {
+      setRenamingFileId(null);
+      setRenameValue("");
+    }
+  };
+
+  const cancelRename = () => {
+    setRenamingFileId(null);
+    setRenameValue("");
   };
 
   const toggleFolder = (fileId: string) => {
@@ -396,7 +524,19 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
             
             {getFileIcon(file)}
             
-            <span className="text-sm ml-2 flex-1 truncate">{file.name}</span>
+            {renamingFileId === file.id ? (
+              <Input
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={handleRenameKeyDown}
+                onBlur={cancelRename}
+                className="h-6 text-sm ml-2 flex-1 bg-ide-bg-primary border-ide-border focus:border-primary"
+                autoFocus
+                data-testid={`input-rename-${file.id}`}
+              />
+            ) : (
+              <span className="text-sm ml-2 flex-1 truncate">{file.name}</span>
+            )}
             
             {file.content !== undefined && file.content !== files.find(f => f.id === file.id)?.content && (
               <div className="w-2 h-2 bg-ide-warning rounded-full ml-2" title="Unsaved changes" />
@@ -433,6 +573,13 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
                       </DropdownMenuItem>
                     </>
                   )}
+                  <DropdownMenuItem
+                    onClick={() => startRenaming(file.id, file.name)}
+                    className="hover:bg-ide-bg-tertiary"
+                  >
+                    <Edit2 className="h-3 w-3 mr-2" />
+                    Rename
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => deleteFileMutation.mutate(file.id)}
                     className="text-ide-error hover:bg-ide-bg-tertiary"
