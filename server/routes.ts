@@ -11,6 +11,62 @@ import path from "path";
 import fs from "fs/promises";
 import { fileSystemSync } from "./fileSystemSync.js";
 
+// Authorization helpers
+function normalizeId(value: any): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value._id) return value._id.toString();
+  return value.toString();
+}
+
+function isAdminUser(req: any): boolean {
+  return !!req.user?.isAdmin;
+}
+
+async function assertProjectWriteAccess(req: any, projectId: string): Promise<{ok: boolean, code?: number, msg?: string}> {
+  try {
+    // Admin users can access any project
+    if (isAdminUser(req)) {
+      return { ok: true };
+    }
+
+    // Load project
+    const project = await mongoStorage.getProject(projectId);
+    if (!project) {
+      return { ok: false, code: 404, msg: "Project not found" };
+    }
+
+    // Check if user is project owner
+    const userId = normalizeId(req.user.id || req.user._id);
+    const projectOwnerId = normalizeId(project.ownerId);
+    
+    if (projectOwnerId === userId) {
+      return { ok: true };
+    }
+
+    return { ok: false, code: 403, msg: "Access denied" };
+  } catch (error) {
+    console.error('Error checking project access:', error);
+    return { ok: false, code: 500, msg: "Internal server error" };
+  }
+}
+
+async function assertFileWriteAccess(req: any, fileId: string): Promise<{ok: boolean, code?: number, msg?: string}> {
+  try {
+    // First get the file
+    const file = await mongoStorage.getFile(fileId);
+    if (!file) {
+      return { ok: false, code: 404, msg: "File not found" };
+    }
+
+    // Then check project access
+    return await assertProjectWriteAccess(req, normalizeId(file.projectId));
+  } catch (error) {
+    console.error('Error checking file access:', error);
+    return { ok: false, code: 500, msg: "Internal server error" };
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupSimpleAuth(app);
@@ -545,16 +601,12 @@ export default App;`,
 
   app.post('/api/projects/:projectId/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id?.toString() || req.user.id;
       const { projectId } = req.params;
       
-      // Check project access
-      const project = await mongoStorage.getProject(projectId);
-      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
-        ? project.ownerId._id.toString() 
-        : project.ownerId?.toString() || project.ownerId;
-      if (!project || projectOwnerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+      // Check project access (allows admins to bypass ownership)
+      const access = await assertProjectWriteAccess(req, projectId);
+      if (!access.ok) {
+        return res.status(access.code || 403).json({ message: access.msg || "Access denied" });
       }
 
       const fileData = insertFileSchema.parse({
@@ -571,21 +623,12 @@ export default App;`,
 
   app.put('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
-      const file = await mongoStorage.getFile(id);
       
-      if (!file) {
-        return res.status(404).json({ message: "File not found" });
-      }
-
-      // Check project access
-      const project = await mongoStorage.getProject(file.projectId);
-      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
-        ? project.ownerId._id.toString() 
-        : project.ownerId?.toString() || project.ownerId;
-      if (!project || projectOwnerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+      // Check file access (includes admin bypass and project ownership)
+      const access = await assertFileWriteAccess(req, id);
+      if (!access.ok) {
+        return res.status(access.code || 403).json({ message: access.msg || "Access denied" });
       }
 
       const updateData = insertFileSchema.partial().parse(req.body);
@@ -598,13 +641,19 @@ export default App;`,
   });
 
   // Simple endpoint to update file content by path
-  app.put('/api/projects/:projectId/files/update', async (req: any, res) => {
+  app.put('/api/projects/:projectId/files/update', isAuthenticated, async (req: any, res) => {
     try {
       const { projectId } = req.params;
       const { path, content } = req.body;
       
       if (!path || content === undefined) {
         return res.status(400).json({ message: "Path and content are required" });
+      }
+
+      // Check project access (allows admins to bypass ownership)
+      const access = await assertProjectWriteAccess(req, projectId);
+      if (!access.ok) {
+        return res.status(access.code || 403).json({ message: access.msg || "Access denied" });
       }
 
       // Get project files to find the file with matching path
@@ -615,7 +664,9 @@ export default App;`,
         return res.status(404).json({ message: "File not found" });
       }
 
-      const updatedFile = await mongoStorage.updateFile(file.id, { content });
+      // Validate the update data
+      const updateData = insertFileSchema.partial().parse({ content });
+      const updatedFile = await mongoStorage.updateFile(file.id, updateData);
       res.json(updatedFile);
     } catch (error) {
       console.error("Error updating file by path:", error);
@@ -625,21 +676,12 @@ export default App;`,
 
   app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id?.toString() || req.user.id;
       const { id } = req.params;
-      const file = await mongoStorage.getFile(id);
       
-      if (!file) {
-        return res.status(404).json({ message: "File not found" });
-      }
-
-      // Check project access
-      const project = await mongoStorage.getProject(file.projectId);
-      const projectOwnerId = typeof project.ownerId === 'object' && project.ownerId && '_id' in project.ownerId 
-        ? project.ownerId._id.toString() 
-        : project.ownerId?.toString() || project.ownerId;
-      if (!project || projectOwnerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+      // Check file access (includes admin bypass and project ownership)
+      const access = await assertFileWriteAccess(req, id);
+      if (!access.ok) {
+        return res.status(access.code || 403).json({ message: access.msg || "Access denied" });
       }
 
       await mongoStorage.deleteFile(id);
@@ -651,9 +693,15 @@ export default App;`,
   });
 
   // Fix React webpack projects by adding missing src files
-  app.post('/api/projects/:id/fix-react', async (req: any, res) => {
+  app.post('/api/projects/:id/fix-react', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      
+      // Check project access (allows admins to bypass ownership)
+      const access = await assertProjectWriteAccess(req, id);
+      if (!access.ok) {
+        return res.status(access.code || 403).json({ message: access.msg || "Access denied" });
+      }
       
       const project = await mongoStorage.getProject(id);
       if (!project) {
