@@ -25,14 +25,21 @@ function isAdminUser(req: any): boolean {
 
 async function assertProjectWriteAccess(req: any, projectId: string): Promise<{ok: boolean, code?: number, msg?: string}> {
   try {
+    console.log('=== DEBUG: assertProjectWriteAccess ===');
+    console.log('User object:', req.user);
+    console.log('Is Admin?:', req.user?.isAdmin);
+    console.log('Project ID:', projectId);
+    
     // Admin users can access any project
     if (isAdminUser(req)) {
+      console.log('✅ Admin access granted');
       return { ok: true };
     }
 
     // Load project
     const project = await mongoStorage.getProject(projectId);
     if (!project) {
+      console.log('❌ Project not found');
       return { ok: false, code: 404, msg: "Project not found" };
     }
 
@@ -40,10 +47,16 @@ async function assertProjectWriteAccess(req: any, projectId: string): Promise<{o
     const userId = normalizeId(req.user.id || req.user._id);
     const projectOwnerId = normalizeId(project.ownerId);
     
+    console.log('User ID:', userId);
+    console.log('Project Owner ID:', projectOwnerId);
+    console.log('IDs match?:', projectOwnerId === userId);
+    
     if (projectOwnerId === userId) {
+      console.log('✅ Owner access granted');
       return { ok: true };
     }
 
+    console.log('❌ Access denied - not admin and not owner');
     return { ok: false, code: 403, msg: "Access denied" };
   } catch (error) {
     console.error('Error checking project access:', error);

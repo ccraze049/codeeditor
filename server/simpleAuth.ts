@@ -127,11 +127,12 @@ export async function setupSimpleAuth(app: Express) {
       
       const user = await mongoStorage.upsertUser(userData);
 
-      // Store user in session
+      // Store user in session (including admin status)
       (req as any).session.user = {
         id: user._id?.toString() || (user as any).id,
         email: user.email,
-        firstName: user.firstName
+        firstName: user.firstName,
+        isAdmin: user.isAdmin || false
       };
       
       // Save session explicitly for login
@@ -216,11 +217,12 @@ export async function setupSimpleAuth(app: Express) {
       
       const user = await mongoStorage.upsertUser(userData);
 
-      // Store user in session
+      // Store user in session (including admin status)
       (req as any).session.user = {
         id: user._id?.toString() || (user as any).id,
         email: user.email,
-        firstName: user.firstName
+        firstName: user.firstName,
+        isAdmin: user.isAdmin || false
       };
       
       // Save session explicitly for signup
