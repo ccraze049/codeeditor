@@ -732,14 +732,14 @@ export default App;`,
       const newPath = pathParts.join('/');
 
       // Check if a file with the new path already exists in the same project
-      const existingFile = await mongoStorage.getFileByPath(file.projectId, newPath);
-      if (existingFile && existingFile.id !== id) {
+      const allFiles = await mongoStorage.getProjectFiles(file.projectId.toString());
+      const existingFile = allFiles.find((f: any) => f.path === newPath && f.id !== id);
+      if (existingFile) {
         return res.status(409).json({ message: "A file or folder with this name already exists" });
       }
 
       // If it's a folder, we need to update all child files/folders too
       if (file.isFolder) {
-        const allFiles = await mongoStorage.getProjectFiles(file.projectId);
         const childFiles = allFiles.filter((f: any) => 
           f.path.startsWith(file.path + '/') && f.id !== id
         );
@@ -747,7 +747,7 @@ export default App;`,
         // Update all child files with new paths
         for (const childFile of childFiles) {
           const updatedChildPath = childFile.path.replace(file.path + '/', newPath + '/');
-          await mongoStorage.updateFile(childFile.id, { path: updatedChildPath });
+          await mongoStorage.updateFile(childFile.id || childFile._id?.toString(), { path: updatedChildPath });
         }
       }
 
