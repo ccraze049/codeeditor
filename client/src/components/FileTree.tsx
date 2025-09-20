@@ -611,14 +611,20 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
                   {file.isFolder && (
                     <>
                       <DropdownMenuItem
-                        onClick={() => startCreatingItem('file', file.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startCreatingItem('file', file.id);
+                        }}
                         className="hover:bg-ide-bg-tertiary"
                       >
                         <FilePlus className="h-3 w-3 mr-2" />
                         New File
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => startCreatingItem('folder', file.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startCreatingItem('folder', file.id);
+                        }}
                         className="hover:bg-ide-bg-tertiary"
                       >
                         <FolderPlus className="h-3 w-3 mr-2" />
@@ -627,14 +633,20 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
                     </>
                   )}
                   <DropdownMenuItem
-                    onClick={() => startRenaming(file.id, file.name)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startRenaming(file.id, file.name);
+                    }}
                     className="hover:bg-ide-bg-tertiary"
                   >
                     <Edit2 className="h-3 w-3 mr-2" />
                     Rename
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => deleteFileMutation.mutate(file.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteFileMutation.mutate(file.id);
+                    }}
                     className="text-ide-error hover:bg-ide-bg-tertiary"
                   >
                     <Trash2 className="h-3 w-3 mr-2" />
