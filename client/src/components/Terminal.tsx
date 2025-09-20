@@ -58,9 +58,58 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   const queryClient = useQueryClient();
   const [isMobile, setIsMobile] = useState(false);
 
-  // Load command history from localStorage on component mount
+  // Load terminal history and command history from localStorage on component mount
   useEffect(() => {
     try {
+      // Load terminal lines history
+      const savedLines = localStorage.getItem(`terminal-lines-${projectId}`);
+      if (savedLines) {
+        const lines = JSON.parse(savedLines);
+        if (Array.isArray(lines) && lines.length > 0) {
+          // Trim to last 200 lines to prevent localStorage overflow
+          const trimmedLines = lines.slice(-200).map(line => ({
+            ...line,
+            timestamp: new Date(line.timestamp)
+          }));
+          
+          // Filter out intro/system lines and apply hideWarnings filter for consistency
+          const filteredLines = trimmedLines.filter(line => {
+            // Remove intro/system lines that might have been saved previously
+            if (line.type === 'system' && 
+                (line.content === 'CodeSpace Terminal - Ready' ||
+                 line.content.includes('Real terminal with command execution') ||
+                 (line.content.includes('Loaded') && line.content.includes('lines from previous session history'))
+                )) {
+              return false;
+            }
+            
+            // Apply hideWarnings filter
+            if (hideWarnings && line.type === 'output' && 
+                (line.content.toLowerCase().includes('npm warn') || 
+                 line.content.toLowerCase().includes('deprecated') ||
+                 line.content.toLowerCase().startsWith('npm warn'))) {
+              return false;
+            }
+            return true;
+          });
+          
+          // Add indicator that history was loaded (but don't save this to localStorage)
+          const historyLoadedLine = {
+            id: `history-loaded-${Date.now()}`,
+            type: 'system' as const,
+            content: `📋 Loaded ${filteredLines.length} lines from previous session history`,
+            timestamp: new Date()
+          };
+          
+          setLines(prevLines => {
+            // If we already have initial lines, merge with saved lines
+            const initialLines = prevLines.filter(line => line.type === 'system');
+            return [...initialLines, historyLoadedLine, ...filteredLines];
+          });
+        }
+      }
+      
+      // Load command history
       const savedHistory = localStorage.getItem(`terminal-history-${projectId}`);
       if (savedHistory) {
         const history = JSON.parse(savedHistory);
@@ -70,7 +119,7 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
         }
       }
     } catch (error) {
-      console.error('Failed to load command history:', error);
+      console.error('Failed to load terminal history:', error);
     }
   }, [projectId]);
 
@@ -87,6 +136,28 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       console.error('Failed to save command history:', error);
     }
   }, [commandHistory, projectId]);
+
+  // Save terminal lines to localStorage whenever they change
+  useEffect(() => {
+    try {
+      if (lines.length > 0) {
+        // Filter out system messages like "history loaded" and initial intro lines
+        const linesToSave = lines
+          .filter(line => 
+            !(line.type === 'system' && 
+              (line.content === 'CodeSpace Terminal - Ready' ||
+               line.content.includes('Real terminal with command execution') ||
+               (line.content.includes('Loaded') && line.content.includes('lines from previous session history'))
+              )
+            )
+          )
+          .slice(-200); // Trim to last 200 lines to prevent localStorage overflow
+        localStorage.setItem(`terminal-lines-${projectId}`, JSON.stringify(linesToSave));
+      }
+    } catch (error) {
+      console.error('Failed to save terminal lines:', error);
+    }
+  }, [lines, projectId]);
 
   // Detect mobile device
   useEffect(() => {
@@ -163,11 +234,12 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
 
 
   const addLine = (content: string, type: TerminalLine['type'] = 'output') => {
-    // Filter out npm warnings if hideWarnings is enabled
+    // Filter out npm warnings if hideWarnings is enabled (case-insensitive)
+    const lc = content.toLowerCase();
     if (hideWarnings && type === 'output' && 
-        (content.includes('npm warn') || 
-         content.includes('deprecated') ||
-         content.startsWith('npm warn'))) {
+        (lc.includes('npm warn') || 
+         lc.includes('deprecated') ||
+         lc.startsWith('npm warn'))) {
       return; // Don't add warning lines
     }
     
@@ -209,7 +281,12 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
       content,
       timestamp: new Date()
     };
-    setLines(prev => [...prev, newLine]);
+    
+    // Cap in-memory lines to prevent performance issues (keep last 300 lines)
+    setLines(prev => {
+      const newLines = [...prev, newLine];
+      return newLines.length > 300 ? newLines.slice(-300) : newLines;
+    });
   };
 
   // Real command execution using backend API
@@ -351,6 +428,12 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
 
   const clearTerminal = () => {
     setLines([]);
+    // Also clear the saved terminal lines from localStorage
+    try {
+      localStorage.removeItem(`terminal-lines-${projectId}`);
+    } catch (error) {
+      console.error('Failed to clear terminal lines from localStorage:', error);
+    }
   };
 
   const clearHistory = () => {
@@ -358,10 +441,16 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     setHistoryIndex(-1);
     try {
       localStorage.removeItem(`terminal-history-${projectId}`);
+      localStorage.removeItem(`terminal-lines-${projectId}`);
     } catch (error) {
-      console.error('Failed to clear command history:', error);
+      console.error('Failed to clear terminal history:', error);
     }
-    addLine('Command history cleared', 'system');
+    setLines([{
+      id: Date.now().toString(),
+      type: 'system',
+      content: 'Terminal and command history cleared',
+      timestamp: new Date()
+    }]);
   };
 
   const copyTerminalContent = async () => {
