@@ -137,8 +137,8 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     }
   }, [commandHistory, projectId]);
 
-  // Save terminal lines to localStorage whenever they change
-  useEffect(() => {
+  // Helper function to save terminal lines to localStorage
+  const saveTerminalLines = () => {
     try {
       if (lines.length > 0) {
         // Filter out system messages like "history loaded" and initial intro lines
@@ -157,7 +157,30 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
     } catch (error) {
       console.error('Failed to save terminal lines:', error);
     }
+  };
+
+  // Save terminal lines to localStorage whenever they change
+  useEffect(() => {
+    saveTerminalLines();
   }, [lines, projectId]);
+
+  // Save terminal lines when component unmounts (cleanup)
+  useEffect(() => {
+    return () => {
+      // Save current state when component unmounts
+      saveTerminalLines();
+    };
+  }, []);
+
+  // Save terminal lines when page is about to unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveTerminalLines();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // Detect mobile device
   useEffect(() => {
@@ -386,6 +409,11 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
 
     // Add command line
     addLine(`$ ${command}`, 'command');
+
+    // Immediately save after adding command line to prevent loss during execution
+    setTimeout(() => {
+      saveTerminalLines();
+    }, 100);
 
     setIsRunning(true);
 
