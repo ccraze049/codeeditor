@@ -15,7 +15,8 @@ import {
   Loader2,
   Filter,
   RefreshCw,
-  ArrowDown
+  ArrowDown,
+  History
 } from "lucide-react";
 
 interface TerminalProps {
@@ -56,6 +57,36 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isMobile, setIsMobile] = useState(false);
+
+  // Load command history from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(`terminal-history-${projectId}`);
+      if (savedHistory) {
+        const history = JSON.parse(savedHistory);
+        if (Array.isArray(history)) {
+          // Trim to last 100 commands on load to ensure consistent cap enforcement
+          setCommandHistory(history.slice(-100));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load command history:', error);
+    }
+  }, [projectId]);
+
+  // Save command history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (commandHistory.length > 0) {
+        localStorage.setItem(`terminal-history-${projectId}`, JSON.stringify(commandHistory));
+      } else {
+        // Remove localStorage entry when history is empty to avoid stale data
+        localStorage.removeItem(`terminal-history-${projectId}`);
+      }
+    } catch (error) {
+      console.error('Failed to save command history:', error);
+    }
+  }, [commandHistory, projectId]);
 
   // Detect mobile device
   useEffect(() => {
@@ -268,8 +299,12 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
 
-    // Add command to history
-    setCommandHistory(prev => [...prev, command]);
+    // Add command to history (limit to last 100 commands to prevent localStorage overflow)
+    setCommandHistory(prev => {
+      const newHistory = [...prev, command];
+      // Keep only last 100 commands
+      return newHistory.slice(-100);
+    });
     setHistoryIndex(-1);
 
     // Add command line
@@ -316,6 +351,17 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
 
   const clearTerminal = () => {
     setLines([]);
+  };
+
+  const clearHistory = () => {
+    setCommandHistory([]);
+    setHistoryIndex(-1);
+    try {
+      localStorage.removeItem(`terminal-history-${projectId}`);
+    } catch (error) {
+      console.error('Failed to clear command history:', error);
+    }
+    addLine('Command history cleared', 'system');
   };
 
   const copyTerminalContent = async () => {
@@ -416,6 +462,16 @@ export default function Terminal({ projectId, onFilesChanged }: TerminalProps) {
             data-testid="button-scroll-bottom"
           >
             <ArrowDown className="h-4 w-4 md:h-3 md:w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearHistory}
+            className="p-1 h-8 w-8 md:h-6 md:w-6 touch-manipulation"
+            title="Clear Command History"
+            data-testid="button-clear-history"
+          >
+            <History className="h-4 w-4 md:h-3 md:w-3" />
           </Button>
           <Button
             variant="ghost"
