@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { 
@@ -40,6 +41,9 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
   const [renameValue, setRenameValue] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasLongPressRef = useRef(false);
 
 
   const createFileMutation = useMutation({
@@ -356,6 +360,44 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
     setRenameValue("");
   };
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+  }, []);
+
+  // Mobile long-press functionality for file renaming (files only)
+  const handleTouchStart = (fileId: string, fileName: string, isFolder: boolean) => {
+    if (!isMobile || isReadOnly || isFolder) return; // Only files, not folders
+    
+    wasLongPressRef.current = false;
+    longPressTimer.current = setTimeout(() => {
+      wasLongPressRef.current = true;
+      startRenaming(fileId, fileName);
+    }, 500); // 500ms long press
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    // Prevent ghost click if long press occurred
+    if (wasLongPressRef.current) {
+      e.preventDefault();
+    }
+  };
+
+  const handleTouchMove = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
   const toggleFolder = (fileId: string) => {
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(fileId)) {
@@ -491,8 +533,16 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
             className={`flex items-center hover:bg-ide-bg-tertiary px-2 py-1 rounded cursor-pointer group ${
               isActive ? 'bg-ide-bg-tertiary' : ''
             }`}
-            style={{ paddingLeft: `${8 + level * 16}px` }}
+            style={{ 
+              paddingLeft: `${8 + level * 16}px`,
+              touchAction: isMobile ? 'manipulation' : 'auto'
+            }}
             onClick={() => {
+              // Suppress ghost click after long press
+              if (wasLongPressRef.current) {
+                wasLongPressRef.current = false;
+                return;
+              }
               if (file.isFolder) {
                 toggleFolder(file.id);
               } else if (file.id !== '000000000000000000000000') {
@@ -500,6 +550,9 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
                 onFileClick(file.id);
               }
             }}
+            onTouchStart={() => handleTouchStart(file.id, file.name, file.isFolder)}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
             data-testid={`file-${file.name}`}
           >
             {file.isFolder && (
