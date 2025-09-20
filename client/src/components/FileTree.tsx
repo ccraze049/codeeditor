@@ -583,6 +583,7 @@ export default function FileTree({ files, onFileClick, activeFileId, isReadOnly,
                 onChange={(e) => setRenameValue(e.target.value)}
                 onKeyDown={handleRenameKeyDown}
                 onBlur={cancelRename}
+                onClick={(e) => e.stopPropagation()}
                 className="h-6 text-sm ml-2 flex-1 bg-ide-bg-primary border-ide-border focus:border-primary"
                 autoFocus
                 data-testid={`input-rename-${file.id}`}
